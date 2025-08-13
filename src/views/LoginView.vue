@@ -81,7 +81,7 @@
           </div>
 
           <div class="mt-6">
-            <button type="submit" :disabled="loading" class="w-full inline-flex justify-center rounded-md bg-gradient-to-r from-purple-800 to-purple-400 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:opacity-95 transition-all duration-200 ease-out hover:-translate-y-0.5 hover:shadow-md disabled:opacity-60 disabled:cursor-not-allowed">
+            <button type="submit" :disabled="loading" class="w-full inline-flex justify-center rounded-full border px-4 py-2.5 text-sm font-medium text-purple-700 bg-white border-purple-200/60 shadow-sm hover:shadow transition-all duration-200 ease-out disabled:opacity-60 disabled:cursor-not-allowed">
               {{ loading ? 'Entrando…' : 'Entrar' }}
             </button>
             <!-- <p v-if="error" class="mt-3 text-sm text-red-600">{{ error }}</p> -->
