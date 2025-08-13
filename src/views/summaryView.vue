@@ -340,7 +340,7 @@ export default {
         </div>
         <div class="mt-4 flex items-center justify-between">
           <button
-            class="inline-flex items-center rounded-md border border-gray-300 bg-white/70 px-3 py-1.5 text-xs font-semibold text-gray-800 shadow-sm transition-transform duration-200 ease-out hover:-translate-y-0.5 hover:border-purple-300 hover:bg-purple-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            class="inline-flex items-center rounded-full border px-3 py-1.5 text-xs font-medium text-gray-800 bg-white border-gray-200/60 shadow-sm transition-transform duration-200 ease-out hover:shadow disabled:opacity-50 disabled:cursor-not-allowed"
             :disabled="current === 0"
             @click="current = Math.max(0, current - 1)"
           >Anterior</button>
@@ -353,7 +353,7 @@ export default {
             ></span>
           </div>
           <button
-            class="inline-flex items-center rounded-md bg-gradient-to-r from-purple-800 to-purple-400 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-transform duration-200 ease-out hover:-translate-y-0.5 hover:opacity-95 hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+            class="inline-flex items-center rounded-full border px-3 py-1.5 text-xs font-medium text-purple-700 bg-white border-purple-200/60 shadow-sm transition-transform duration-200 ease-out hover:shadow disabled:opacity-50 disabled:cursor-not-allowed"
             :disabled="current === pages.length - 1"
             @click="current = Math.min(pages.length - 1, current + 1)"
           >Siguiente</button>

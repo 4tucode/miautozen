@@ -34,7 +34,6 @@
           </template>
           <template v-else>
             <router-link :to="{ name: 'login' }" class="inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium text-purple-700 bg-white border-purple-200/60 shadow-sm hover:shadow transition-all">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" class="h-5 w-5"><path stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6A2.25 2.25 0 005.25 5.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l3 3m0 0l-3 3m3-3H3.75"/></svg>
               <span>Entrar</span>
             </router-link>
             <router-link :to="{ name: 'register' }" class="inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium text-purple-700 bg-white border-purple-200/60 shadow-sm hover:shadow transition-all">
@@ -80,12 +79,7 @@
           </button>
         </template>
         <template v-else>
-          <router-link class="block rounded px-3 py-2 text-gray-700 hover:bg-gray-100" :to="{ name: 'login' }" @click="open=false">
-            <span class="inline-flex items-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" class="h-5 w-5"><path stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6A2.25 2.25 0 005.25 5.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l3 3m0 0l-3 3m3-3H3.75"/></svg>
-              Entrar
-            </span>
-          </router-link>
+          <router-link class="block rounded px-3 py-2 text-gray-700 hover:bg-gray-100" :to="{ name: 'login' }" @click="open=false">Entrar</router-link>
           <router-link class="mt-2 block rounded px-3 py-2 text-gray-700 hover:bg-gray-100" :to="{ name: 'register' }" @click="open=false">
             <span class="inline-flex items-center gap-2">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" class="h-5 w-5"><path stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M15.75 9a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.5 20.118a7.5 7.5 0 0115 0M19.5 8.25h3m-1.5 1.5V6.75"/></svg>

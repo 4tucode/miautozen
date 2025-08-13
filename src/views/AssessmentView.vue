@@ -90,14 +90,14 @@
     <!-- Acciones -->
     <footer class="mt-5 flex items-center justify-between gap-3">
       <button
-        class="inline-flex items-center justify-center rounded-md border border-gray-300 bg-white/70 px-4 py-2 text-sm font-semibold text-gray-800 shadow-sm transition-all duration-200 ease-out hover:border-purple-300 hover:bg-purple-50/60 disabled:cursor-not-allowed disabled:opacity-50"
+        class="inline-flex items-center justify-center rounded-full border px-4 py-2 text-sm font-medium text-gray-800 bg-white border-gray-200/60 shadow-sm transition-all duration-200 ease-out hover:shadow disabled:cursor-not-allowed disabled:opacity-50"
         :disabled="currentIndex===0"
         @click="goPrev"
       >
         Atrás
       </button>
       <button
-        class="inline-flex items-center justify-center rounded-md bg-gradient-to-r from-purple-800 to-purple-400 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all duration-200 ease-out hover:opacity-95 hover:-translate-y-0.5 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60"
+        class="inline-flex items-center justify-center rounded-full border px-5 py-2.5 text-sm font-medium text-purple-700 bg-white border-purple-200/60 shadow-sm transition-all duration-200 ease-out hover:shadow disabled:cursor-not-allowed disabled:opacity-60"
         @click="handleNextOrSubmit"
       >
         {{ isLast ? 'Guardar y ver resumen' : 'Siguiente' }}

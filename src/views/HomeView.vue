@@ -21,18 +21,16 @@
 
             <div class="mt-6 flex flex-col items-center gap-3 md:flex-row md:justify-start">
               <button
-                class="inline-flex items-center gap-2 rounded-lg bg-[#BE51D4] px-5 py-3 text-white shadow transition hover:opacity-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                class="inline-flex items-center gap-2 rounded-full border px-5 py-2.5 text-sm font-medium text-purple-700 bg-white border-purple-200/60 shadow-sm hover:shadow transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 :disabled="cargando || !puedeEmpezar"
                 @click="empezarDiagnostico">
                 <span>{{ cargando ? 'Cargando…' : 'Empezar diagnóstico' }}</span>
-                <svg v-if="!cargando" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-5 w-5">
-                  <path fill-rule="evenodd" d="M4.5 12a.75.75 0 0 1 .75-.75h11.69l-3.22-3.22a.75.75 0 1 1 1.06-1.06l4.5 4.5a.75.75 0 0 1 0 1.06l-4.5 4.5a.75.75 0 1 1-1.06-1.06l3.22-3.22H5.25A.75.75 0 0 1 4.5 12Z" clip-rule="evenodd" />
-                </svg>
+                
               </button>
 
               <router-link
                 :to="{ name: 'results' }"
-                class="inline-flex items-center rounded-lg border border-gray-300 bg-white px-5 py-3 text-gray-700 shadow-sm transition hover:bg-gray-50">
+                class="inline-flex items-center rounded-full border px-5 py-2.5 text-sm font-medium text-gray-700 bg-white border-gray-200/60 shadow-sm hover:shadow transition-all">
                 Ver mis resultados
               </router-link>
             </div>
@@ -102,7 +100,7 @@
         <h3 class="text-2xl font-bold text-gray-900">Da el siguiente paso</h3>
         <p class="mt-2 text-gray-700">Comienza tu autoevaluación ahora y descubre recomendaciones personalizadas.</p>
         <button
-          class="mt-5 inline-flex items-center rounded-lg bg-[#529E26] px-6 py-3 font-semibold text-white shadow transition hover:opacity-95 disabled:opacity-50 disabled:cursor-not-allowed"
+          class="mt-5 inline-flex items-center rounded-full border px-6 py-3 text-sm font-medium text-purple-700 bg-white border-purple-200/60 shadow-sm hover:shadow transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           :disabled="cargando || !puedeEmpezar"
           @click="empezarDiagnostico">
           Empezar ahora
