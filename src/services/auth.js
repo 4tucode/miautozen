@@ -33,8 +33,7 @@ export async function register({ email, password, nombre }) {
 }
 
 export async function login(email, password) {
-  // Mejor no loguear la contraseña. Si quieres dejar el log, muestra solo el email:
-  console.log("Datos del login (email):", email);
+  // Validación de credenciales
   if (!email || !password) throw new Error("Email y contraseña requeridos");
   return signInWithEmailAndPassword(auth, email, password);
 }
