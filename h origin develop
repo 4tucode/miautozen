@@ -1,0 +1,5 @@
+[33m224670d[m[33m ([m[1;36mHEAD -> [m[1;32mdevelop[m[33m)[m feat: Implementar página Sobre con perfil del creador y datos actuales de salud mental
+[33mc0bb4af[m[33m ([m[1;31morigin/develop[m[33m)[m UI unificada: botones estilo chip (rounded-full, borde sutil, sombra) en Home, Assessment, Login, Register y Summary; NavBar con ‘Entrar’ sin icono y ajustes de estilos. Animación de enlaces corregida y coherencia visual.
+[33mb9fe3e2[m UI recursos y perfil: rediseño ResourcesView y ResultsView con favoritos (Firestore), aside fijo y filtros, animaciones y badges morados; NavBar con icono de perfil de color dinámico y botones unificados; fixes de UX y estilos Tailwind
+[33m627ed48[m[33m ([m[1;31morigin/staging[m[33m, [m[1;32mstaging[m[33m, [m[1;32mfeat/resources-view[m[33m)[m chore: publicación inicial de MiAutoZen
+[33mbd23a1c[m init
