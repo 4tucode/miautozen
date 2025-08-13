@@ -71,7 +71,7 @@ export default {
         const nuevo = new Set(favoritosIds.value); nuevo.add(key); favoritosIds.value = nuevo;
         toast.info('Se añadió el recurso a tus favoritos');
       } catch (e) {
-        console.error(e);
+        // Error añadiendo a favoritos
         toast.error('No se pudo añadir a favoritos');
       } finally {
         const p2 = new Set(actualizandoIds.value); p2.delete(key); actualizandoIds.value = p2;

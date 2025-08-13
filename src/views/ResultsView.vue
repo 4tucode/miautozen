@@ -115,7 +115,7 @@ export default {
         favoritos.value = favoritos.value.filter(f => f.id !== fav.id);
         toast.info('Se eliminó el recurso de tus favoritos');
       } catch (e) {
-        console.error(e);
+        // Error eliminando favorito
         toast.error('No se pudo eliminar el favorito');
       }
     };

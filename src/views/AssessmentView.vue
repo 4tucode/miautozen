@@ -180,7 +180,7 @@ export default {
 
       this.answers = Array(this.totalQuestions).fill(null)
     } catch (e) {
-      console.error('Error cargando formulario', e)
+      // Error cargando formulario
       this.$toast?.error?.('No se pudo cargar el formulario')
       // Fallback mínimo
       this.questions = [
@@ -268,7 +268,7 @@ export default {
         // Navega a resumen
         this.$router.push({ name: 'assessment-summary', query: { form: this.formId } })
       } catch (e) {
-        console.error('Error guardando resultado', e)
+        // Error guardando resultado
         this.$toast?.error?.('No se pudo guardar el resultado, inténtalo de nuevo')
         // Aun así permite ver el resumen local
         this.$router.push({ name: 'assessment-summary', query: { form: this.formId, local: '1' } })
