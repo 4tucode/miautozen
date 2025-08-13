@@ -1,6 +1,6 @@
 import { db, serverTimestamp } from "@/firebase";
 import {
-  collection, doc, getDocs, addDoc, query, where, orderBy, getDoc
+  collection, doc, getDocs, addDoc, query, where, orderBy, getDoc, setDoc, deleteDoc
 } from "firebase/firestore";
 
 export async function listarAutoevaluaciones() {
@@ -106,4 +106,41 @@ export async function enviarCorreoContacto({ nombre, email, motivo, mensaje }) {
   };
 
   return addDoc(collection(db, 'mail'), mailDoc);
+}
+
+// =====================
+// Favoritos (perfil)
+// Estructura: colección "favoritos"
+//   - id: `${usuarioId}_${recursoId}` para escritura idempotente
+//   - campos: { usuarioId, recursoId, recurso: { ...metadata }, creadoEn }
+// =====================
+
+export async function listarFavoritosPorUsuario(usuarioId) {
+  const q = query(
+    collection(db, 'favoritos'),
+    where('usuarioId', '==', usuarioId),
+    orderBy('creadoEn', 'desc')
+  );
+  const snap = await getDocs(q);
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+}
+
+export async function setFavorito({ usuarioId, recurso }) {
+  if (!usuarioId || !recurso?.id) throw new Error('usuarioId y recurso.id requeridos');
+  const favId = `${usuarioId}_${recurso.id}`;
+  const ref = doc(db, 'favoritos', favId);
+  await setDoc(ref, {
+    usuarioId,
+    recursoId: recurso.id,
+    recurso,
+    creadoEn: serverTimestamp(),
+  }, { merge: true });
+  const snap = await getDoc(ref);
+  return { id: snap.id, ...snap.data() };
+}
+
+export async function removeFavorito({ usuarioId, recursoId }) {
+  if (!usuarioId || !recursoId) throw new Error('usuarioId y recursoId requeridos');
+  const favId = `${usuarioId}_${recursoId}`;
+  await deleteDoc(doc(db, 'favoritos', favId));
 }
