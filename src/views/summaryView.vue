@@ -392,7 +392,7 @@ export default {
                   <div class="text-right">
                     <span class="inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-sm font-bold bg-white/80 ring-1 ring-inset" :class="badgeClass(c.wellbeingPercent)">
                       <span class="select-none">{{ domainEmoji(c.key) }}</span>
-                      <span>{{ emojiForPercent(c.wellbeingPercent) }} {{ c.percent }}%</span>
+                      <span>{{ c.percent }}%</span>
                     </span>
                   </div>
                 </div>
