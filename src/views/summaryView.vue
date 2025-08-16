@@ -16,7 +16,8 @@ export default {
         { kind: 'impact' },
         { kind: 'note' }
       ],
-      deepByDomain: {}
+      deepByDomain: {},
+      domainCurrent: 0
     }
   },
   computed: {
@@ -87,9 +88,21 @@ export default {
       if (key === 'bienestar_fisico') return 'from-emerald-200/70 to-teal-200/60 ring-emerald-200'
       return 'from-purple-200/70 to-amber-200/60 ring-purple-200'
     },
-    domainImage(/* key */) {
-      // Imagen de portada zen (fallback)
+    domainImage(key) {
+      try {
+        if (key === 'animo') return require('@/assets/zen1.png')
+        if (key === 'ansiedad') return require('@/assets/zen2.png')
+        if (key === 'bienestar_fisico') return require('@/assets/zen3.png')
+      } catch (e) {
+        // no-op
+      }
       return require('@/assets/fondo.jpg')
+    },
+    domainEmoji(key) {
+      if (key === 'animo') return '🙂'
+      if (key === 'ansiedad') return '⚡'
+      if (key === 'bienestar_fisico') return '🌙'
+      return '🎯'
     },
     scrollDomains(dir = 1) {
       try {
@@ -97,6 +110,38 @@ export default {
         if (!el) return
         const amount = Math.round(el.clientWidth * 0.9) * (dir >= 0 ? 1 : -1)
         el.scrollBy({ left: amount, behavior: 'smooth' })
+      } catch (e) {
+        // no-op
+      }
+    },
+    goDomain(idx) {
+      try {
+        const el = this.$el?.querySelector?.('.domains-strip > .flex')
+        const container = this.$el?.querySelector?.('.domains-strip')
+        if (!el || !container) return
+        const card = el.children?.[idx]
+        if (!card) return
+        container.scrollTo({ left: card.offsetLeft - 16, behavior: 'smooth' })
+        this.domainCurrent = idx
+      } catch (e) {
+        // no-op
+      }
+    },
+    onDomainsScroll() {
+      try {
+        const container = this.$el?.querySelector?.('.domains-strip')
+        const el = this.$el?.querySelector?.('.domains-strip > .flex')
+        if (!el || !container) return
+        const cards = Array.from(el.children || [])
+        const midpoint = container.scrollLeft + container.clientWidth / 2
+        let closestIdx = 0
+        let closestDist = Number.POSITIVE_INFINITY
+        cards.forEach((node, i) => {
+          const center = node.offsetLeft + node.clientWidth / 2
+          const d = Math.abs(center - midpoint)
+          if (d < closestDist) { closestDist = d; closestIdx = i }
+        })
+        this.domainCurrent = closestIdx
       } catch (e) {
         // no-op
       }
@@ -199,6 +244,23 @@ export default {
       console.error(e)
     } finally {
       this.cargando = false
+    }
+  }
+  ,mounted() {
+    // escuchar scroll del carrusel de dominios
+    try {
+      const el = this.$el?.querySelector?.('.domains-strip')
+      el && el.addEventListener && el.addEventListener('scroll', this.onDomainsScroll, { passive: true })
+    } catch (e) {
+      // no-op
+    }
+  },
+  beforeUnmount() {
+    try {
+      const el = this.$el?.querySelector?.('.domains-strip')
+      el && el.removeEventListener && el.removeEventListener('scroll', this.onDomainsScroll)
+    } catch (e) {
+      // no-op
     }
   }
 }
@@ -323,25 +385,21 @@ export default {
                 <img :src="domainImage(c.key)" alt="" class="absolute inset-0 h-full w-full object-cover opacity-60" />
                 <div class="absolute inset-0 bg-gradient-to-t from-white/90 via-white/30 to-transparent"></div>
                 <div class="relative h-full w-full p-5 flex items-end justify-between">
-                  <div>
+                  <div class="min-w-0">
                     <h3 class="text-2xl font-extrabold text-gray-900 tracking-tight">{{ c.label }}</h3>
                     <p class="mt-1 text-sm text-gray-700 max-w-md">{{ explanationFor(c) }}</p>
                   </div>
                   <div class="text-right">
-                    <span class="inline-flex items-center rounded-full px-2.5 py-1 text-sm font-bold bg-white/80 ring-1 ring-inset" :class="badgeClass(c.wellbeingPercent)">{{ emojiForPercent(c.wellbeingPercent) }} {{ c.percent }}%</span>
+                    <span class="inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-sm font-bold bg-white/80 ring-1 ring-inset" :class="badgeClass(c.wellbeingPercent)">
+                      <span class="select-none">{{ domainEmoji(c.key) }}</span>
+                      <span>{{ emojiForPercent(c.wellbeingPercent) }} {{ c.percent }}%</span>
+                    </span>
                   </div>
                 </div>
               </div>
               <!-- Cuerpo -->
               <div class="p-5">
-                <div class="flex items-center justify-between">
-                  <p class="text-sm text-gray-700">Estado actual de {{ c.label.toLowerCase() }}</p>
-                  <div class="flex -space-x-1">
-                    <span class="h-2 w-6 rounded-full bg-amber-300"></span>
-                    <span class="h-2 w-6 rounded-full bg-rose-300"></span>
-                    <span class="h-2 w-6 rounded-full bg-emerald-300"></span>
-                  </div>
-                </div>
+                <p class="text-sm text-gray-700">Estado actual de {{ c.label.toLowerCase() }}</p>
                 <div class="mt-4">
                   <template v-if="isDomainRed(c)">
                     <router-link :to="domainActionTarget(c)" class="inline-flex items-center rounded-full bg-white px-4 py-2 text-sm font-semibold text-rose-700 ring-1 ring-inset ring-rose-200 hover:bg-rose-50">
@@ -354,6 +412,12 @@ export default {
                 </div>
               </div>
             </article>
+          </div>
+          <!-- Indicadores del carrusel -->
+          <div class="mt-4 flex items-center justify-center gap-2">
+            <button v-for="(c, i) in catBreakdown" :key="'dot-dom-'+i" class="h-2.5 w-2.5 rounded-full ring-1 ring-gray-300"
+                    :class="i===domainCurrent ? 'bg-gradient-to-r from-amber-500 to-rose-500' : 'bg-gray-200 hover:bg-gray-300'"
+                    @click="goDomain(i)"></button>
           </div>
         </div>
       </section>
