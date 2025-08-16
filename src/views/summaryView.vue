@@ -81,6 +81,26 @@ export default {
     }
   },
   methods: {
+    domainBgClass(key) {
+      if (key === 'animo') return 'from-amber-200/70 to-rose-200/60 ring-amber-200'
+      if (key === 'ansiedad') return 'from-rose-200/70 to-purple-200/60 ring-rose-200'
+      if (key === 'bienestar_fisico') return 'from-emerald-200/70 to-teal-200/60 ring-emerald-200'
+      return 'from-purple-200/70 to-amber-200/60 ring-purple-200'
+    },
+    domainImage(/* key */) {
+      // Imagen de portada zen (fallback)
+      return require('@/assets/fondo.jpg')
+    },
+    scrollDomains(dir = 1) {
+      try {
+        const el = this.$el?.querySelector?.('.domains-strip')
+        if (!el) return
+        const amount = Math.round(el.clientWidth * 0.9) * (dir >= 0 ? 1 : -1)
+        el.scrollBy({ left: amount, behavior: 'smooth' })
+      } catch (e) {
+        // no-op
+      }
+    },
     badgeClass(wellbeingPercent) {
       const p = Number(wellbeingPercent || 0)
       if (p >= 67) {
@@ -284,28 +304,57 @@ export default {
 
       <!-- Dominios visuales -->
       <section>
-        <h2 class="text-2xl md:text-3xl font-bold text-gray-900">Tus dominios</h2>
-        <div class="mt-4 grid gap-5 [grid-template-columns:repeat(auto-fill,minmax(260px,1fr))]">
-          <article v-for="c in catBreakdown" :key="c.key" class="group relative overflow-hidden rounded-2xl bg-white/80 ring-1 ring-inset ring-gray-200 p-5 shadow-sm">
-            <div class="absolute -top-10 -right-10 h-32 w-32 rounded-full bg-gradient-to-br opacity-20 blur-2xl transition-transform group-hover:scale-110"
-                 :class="c.key==='animo' ? 'from-amber-300 to-rose-200' : c.key==='ansiedad' ? 'from-rose-300 to-purple-200' : c.key==='bienestar_fisico' ? 'from-emerald-300 to-teal-200' : 'from-purple-300 to-amber-200'">
-            </div>
-            <header class="relative flex items-start justify-between">
-              <h3 class="text-lg font-semibold text-gray-900">{{ c.label }}</h3>
-              <span class="rounded-full px-2 py-0.5 text-xs font-semibold" :class="badgeClass(c.wellbeingPercent)">{{ emojiForPercent(c.wellbeingPercent) }} {{ c.percent }}%</span>
-            </header>
-            <p class="mt-2 text-sm text-gray-700">{{ explanationFor(c) }}</p>
-            <div class="mt-3">
-              <template v-if="isDomainRed(c)">
-                <router-link :to="domainActionTarget(c)" class="inline-flex items-center rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-rose-700 ring-1 ring-inset ring-rose-200 hover:bg-rose-50">
-                  {{ domainLearnMoreCta(c) }}
-                </router-link>
-              </template>
-              <template v-else>
-                <span class="inline-flex items-center rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-200">Dominio en buen estado</span>
-              </template>
-            </div>
-          </article>
+        <div class="flex items-end justify-between gap-4">
+          <h2 class="text-2xl md:text-3xl font-bold text-gray-900">Tus dominios</h2>
+          <div class="hidden sm:flex items-center gap-2">
+            <button class="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white ring-1 ring-gray-200 text-gray-700 hover:bg-gray-50" @click="scrollDomains(-1)">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-4 w-4"><path d="M15.75 19.5L8.25 12l7.5-7.5"/></svg>
+            </button>
+            <button class="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white ring-1 ring-gray-200 text-gray-700 hover:bg-gray-50" @click="scrollDomains(1)">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-4 w-4"><path d="M8.25 4.5L15.75 12l-7.5 7.5"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="mt-4 overflow-x-auto domains-strip scroll-smooth [scrollbar-width:none] [-ms-overflow-style:none]" style="scrollbar-width: none;">
+          <div class="flex gap-5 min-w-full">
+            <article v-for="c in catBreakdown" :key="c.key" class="group relative w-[92%] sm:w-[520px] shrink-0 overflow-hidden rounded-3xl ring-1 p-0 shadow-sm bg-gradient-to-br" :class="domainBgClass(c.key)">
+              <!-- Portada -->
+              <div class="relative h-40 sm:h-56">
+                <img :src="domainImage(c.key)" alt="" class="absolute inset-0 h-full w-full object-cover opacity-60" />
+                <div class="absolute inset-0 bg-gradient-to-t from-white/90 via-white/30 to-transparent"></div>
+                <div class="relative h-full w-full p-5 flex items-end justify-between">
+                  <div>
+                    <h3 class="text-2xl font-extrabold text-gray-900 tracking-tight">{{ c.label }}</h3>
+                    <p class="mt-1 text-sm text-gray-700 max-w-md">{{ explanationFor(c) }}</p>
+                  </div>
+                  <div class="text-right">
+                    <span class="inline-flex items-center rounded-full px-2.5 py-1 text-sm font-bold bg-white/80 ring-1 ring-inset" :class="badgeClass(c.wellbeingPercent)">{{ emojiForPercent(c.wellbeingPercent) }} {{ c.percent }}%</span>
+                  </div>
+                </div>
+              </div>
+              <!-- Cuerpo -->
+              <div class="p-5">
+                <div class="flex items-center justify-between">
+                  <p class="text-sm text-gray-700">Estado actual de {{ c.label.toLowerCase() }}</p>
+                  <div class="flex -space-x-1">
+                    <span class="h-2 w-6 rounded-full bg-amber-300"></span>
+                    <span class="h-2 w-6 rounded-full bg-rose-300"></span>
+                    <span class="h-2 w-6 rounded-full bg-emerald-300"></span>
+                  </div>
+                </div>
+                <div class="mt-4">
+                  <template v-if="isDomainRed(c)">
+                    <router-link :to="domainActionTarget(c)" class="inline-flex items-center rounded-full bg-white px-4 py-2 text-sm font-semibold text-rose-700 ring-1 ring-inset ring-rose-200 hover:bg-rose-50">
+                      {{ domainLearnMoreCta(c) }}
+                    </router-link>
+                  </template>
+                  <template v-else>
+                    <span class="inline-flex items-center rounded-full bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-200">Dominio en buen estado</span>
+                  </template>
+                </div>
+              </div>
+            </article>
+          </div>
         </div>
       </section>
     </div>
