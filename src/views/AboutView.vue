@@ -17,14 +17,13 @@
         <!-- Creadora -->
         <article class="lg:col-span-1 bg-white/80 backdrop-blur rounded-2xl shadow-sm ring-1 ring-gray-200 p-6">
           <div class="flex flex-col items-center text-center">
-            <img :src="creatorPhoto" alt="Foto de Fortunato Yekue Nzambi" class="h-28 w-28 rounded-full ring-4 ring-amber-100 object-cover" />
-            <h2 class="font-kanit mt-4 text-2xl font-semibold text-gray-900">Fortunato Yekue Nzambi</h2>
-            <p class="text-emerald-700 font-medium">Fundador de Miautozen • Desarrollador Frontend</p>
+            <img :src="creatorPhoto" alt="Foto de Ana Santoro" class="h-28 w-28 rounded-full ring-4 ring-amber-100 object-cover" />
+            <h2 class="font-kanit mt-4 text-2xl font-semibold text-gray-900">Ana Santoro</h2>
+            <p class="text-emerald-700 font-medium">Fundadora de Miautozen • Psicóloga Sanitaria</p>
             <p class="text-gray-600 mt-3">
-              Soy desarrollador web Frontend apasionado por la tecnología y el bienestar digital. Me preocupa profundamente
-              el estado actual de la salud mental en nuestra sociedad. Durante mi tiempo en la universidad, tuve compañeros
-              que atravesaban dificultades emocionales y no sabía bien cómo ayudarles. Esta experiencia me motivó a crear
-              Miautozen, democratizando el acceso a herramientas de autoevaluación en salud mental con tecnología moderna.
+              Psicóloga especializada en ansiedad, estrés académico y burnout. Después de trabajar con estudiantes y
+              equipos en organizaciones, creó Miautozen para acercar autoevaluaciones y recursos prácticos que ayuden a
+              tomar decisiones informadas y a cultivar hábitos que protegen la salud mental.
             </p>
 
             <div class="mt-6 flex items-center gap-3">
@@ -52,15 +51,15 @@
           <dl class="mt-6 divide-y divide-gray-100 text-sm text-gray-700">
             <div class="flex justify-between py-2">
               <dt class="text-gray-500">Ubicación</dt>
-              <dd>Valencia, España</dd>
+              <dd>Madrid, España</dd>
             </div>
             <div class="flex justify-between py-2">
               <dt class="text-gray-500">Especialidad</dt>
-              <dd>Desarrollo Frontend, UX/UI, Tecnología para salud mental</dd>
+              <dd>Ansiedad, estrés académico y burnout</dd>
             </div>
             <div class="flex justify-between py-2">
               <dt class="text-gray-500">Contacto</dt>
-              <dd><a href="mailto:4tucode@gmail.com" class="text-emerald-700 hover:underline">4tucode@gmail.com</a></dd>
+              <dd><a href="mailto:hola@miautozen.com" class="text-emerald-700 hover:underline">hola@miautozen.com</a></dd>
             </div>
           </dl>
         </article>
@@ -137,9 +136,9 @@ export default {
     return {
       creatorPhoto,
       links: {
-        youtube: 'https://www.youtube.com/@fortunatoyekue',
-        instagram: 'https://www.instagram.com/fortunato.yekue',
-        linkedin: 'https://www.linkedin.com/in/fortunato-yekue-nzambi-82489b75/'
+        youtube: 'https://www.youtube.com/@anasantoro.mente',
+        instagram: 'https://www.instagram.com/ana.santoro.mente',
+        linkedin: 'https://www.linkedin.com/in/ana-santoro-mente'
       }
     }
   }
@@ -159,3 +158,4 @@ export default {
     linear-gradient(135deg, rgba(251, 191, 36, 0.04), rgba(16, 185, 129, 0.04));
 }
 </style>
+
