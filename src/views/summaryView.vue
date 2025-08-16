@@ -304,50 +304,53 @@ export default {
     <div v-else-if="resultado" class="mt-10 space-y-12">
       <!-- Slider interpretativo -->
       <section>
-        <h2 class="text-2xl md:text-3xl font-bold text-gray-900">Cómo interpretar tus resultados</h2>
-        <div class="relative mt-4 overflow-hidden rounded-2xl ring-1 ring-gray-200 bg-white/70">
+        <h2 class="text-3xl md:text-4xl font-extrabold tracking-tight text-gray-900">
+          <span class="bg-gradient-to-r from-amber-600 via-rose-500 to-emerald-600 bg-clip-text text-transparent">Cómo interpretar tus resultados</span>
+        </h2>
+        <div class="relative mt-4 overflow-hidden rounded-2xl ring-1 ring-gray-200 bg-white/60">
           <div class="flex transition-transform duration-300 ease-out" :style="{ width: (pages.length*100)+'%', transform: 'translateX(-'+ (current*100) +'%)' }">
             <div v-for="(p, i) in pages" :key="'slide-'+i" class="w-full shrink-0 px-6 py-6 md:px-8 md:py-8">
-              <div :key="p.kind">
-                <div v-if="p.kind==='intro'" class="space-y-3 text-base md:text-lg text-gray-700">
+              <div :key="p.kind" class="rounded-2xl ring-1 p-5 sm:p-6 bg-white/85 backdrop-blur"
+                   :class="p.kind==='intro' ? 'ring-amber-100' : p.kind==='total' ? 'ring-emerald-100' : p.kind==='domains' ? 'ring-purple-100' : p.kind==='impact' ? 'ring-rose-100' : 'ring-amber-100'">
+                <div v-if="p.kind==='intro'" class="space-y-3 text-lg md:text-xl text-gray-700">
                   <p>Esta autoevaluación resume tu bienestar emocional con 7 preguntas (0–3 por ítem, total 0–21).</p>
                   <p>Úsalo como una guía para conocerte mejor. Si algo te preocupa, busca apoyo: pedir ayuda es una fortaleza.</p>
                 </div>
-                <div v-else-if="p.kind==='total'" class="space-y-3 text-gray-700">
-                  <p class="font-medium text-gray-900">Tu puntuación total se interpreta así:</p>
-                  <ul class="space-y-2 text-base">
-                    <li class="flex items-center gap-2"><span class="inline-flex h-2.5 w-2.5 rounded-full bg-green-500"></span><span><span class="font-semibold">0–4</span> Muy baja: señales leves o ausentes.</span></li>
-                    <li class="flex items-center gap-2"><span class="inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500"></span><span><span class="font-semibold">5–9</span> Leve: hábitos y rutinas pueden ayudar mucho.</span></li>
-                    <li class="flex items-center gap-2"><span class="inline-flex h-2.5 w-2.5 rounded-full bg-amber-500"></span><span><span class="font-semibold">10–14</span> Moderada: valora apoyo y acciones sostenidas.</span></li>
-                    <li class="flex items-center gap-2"><span class="inline-flex h-2.5 w-2.5 rounded-full bg-rose-500"></span><span><span class="font-semibold">15–21</span> Alta: busca ayuda profesional y apóyate en tu red cercana.</span></li>
+                <div v-else-if="p.kind==='total'" class="space-y-3 text-lg md:text-xl text-gray-700">
+                  <p class="font-semibold text-gray-900">Tu puntuación total se interpreta así:</p>
+                  <ul class="space-y-2">
+                    <li class="flex items-center gap-2"><span class="inline-flex h-3 w-3 rounded-full bg-green-500"></span><span><span class="font-bold">0–4</span> Muy baja: señales leves o ausentes.</span></li>
+                    <li class="flex items-center gap-2"><span class="inline-flex h-3 w-3 rounded-full bg-emerald-500"></span><span><span class="font-bold">5–9</span> Leve: hábitos y rutinas pueden ayudar mucho.</span></li>
+                    <li class="flex items-center gap-2"><span class="inline-flex h-3 w-3 rounded-full bg-amber-500"></span><span><span class="font-bold">10–14</span> Moderada: valora apoyo y acciones sostenidas.</span></li>
+                    <li class="flex items-center gap-2"><span class="inline-flex h-3 w-3 rounded-full bg-rose-500"></span><span><span class="font-bold">15–21</span> Alta: busca ayuda profesional y apóyate en tu red cercana.</span></li>
                   </ul>
                 </div>
-                <div v-else-if="p.kind==='domains'" class="space-y-4 text-gray-700">
-                  <p class="font-medium text-gray-900">Qué mide cada dominio:</p>
+                <div v-else-if="p.kind==='domains'" class="space-y-4 text-lg md:text-xl text-gray-700">
+                  <p class="font-semibold text-gray-900">Qué mide cada dominio:</p>
                   <div class="grid gap-4 sm:grid-cols-2">
-                    <div class="flex items-start gap-3 rounded-xl bg-amber-50/60 p-4 ring-1 ring-amber-100">
-                      <span class="mt-0.5 inline-flex h-7 w-7 items-center justify-center rounded-full bg-amber-200 text-amber-800">🙂</span>
-                      <div class="text-sm"><p class="font-semibold text-gray-900">Ánimo</p><p>Estado de ánimo bajo y pérdida de interés.</p></div>
+                    <div class="flex items-start gap-3 rounded-xl bg-amber-50/80 p-4 ring-1 ring-amber-100">
+                      <span class="mt-0.5 inline-flex h-8 w-8 items-center justify-center rounded-full bg-amber-200 text-amber-800">🙂</span>
+                      <div class="text-sm md:text-base"><p class="font-semibold text-gray-900">Ánimo</p><p>Estado de ánimo bajo y pérdida de interés.</p></div>
                     </div>
-                    <div class="flex items-start gap-3 rounded-xl bg-rose-50/60 p-4 ring-1 ring-rose-100">
-                      <span class="mt-0.5 inline-flex h-7 w-7 items-center justify-center rounded-full bg-rose-200 text-rose-800">⚡</span>
-                      <div class="text-sm"><p class="font-semibold text-gray-900">Ansiedad</p><p>Preocupación constante, tensión o nerviosismo.</p></div>
+                    <div class="flex items-start gap-3 rounded-xl bg-rose-50/80 p-4 ring-1 ring-rose-100">
+                      <span class="mt-0.5 inline-flex h-8 w-8 items-center justify-center rounded-full bg-rose-200 text-rose-800">⚡</span>
+                      <div class="text-sm md:text-base"><p class="font-semibold text-gray-900">Ansiedad</p><p>Preocupación constante, tensión o nerviosismo.</p></div>
                     </div>
-                    <div class="flex items-start gap-3 rounded-xl bg-emerald-50/60 p-4 ring-1 ring-emerald-100">
-                      <span class="mt-0.5 inline-flex h-7 w-7 items-center justify-center rounded-full bg-emerald-200 text-emerald-800">🌙</span>
-                      <div class="text-sm"><p class="font-semibold text-gray-900">Bienestar físico</p><p>Sueño y energía: descanso, cansancio o fatiga.</p></div>
+                    <div class="flex items-start gap-3 rounded-xl bg-emerald-50/80 p-4 ring-1 ring-emerald-100">
+                      <span class="mt-0.5 inline-flex h-8 w-8 items-center justify-center rounded-full bg-emerald-200 text-emerald-800">🌙</span>
+                      <div class="text-sm md:text-base"><p class="font-semibold text-gray-900">Bienestar físico</p><p>Sueño y energía: descanso, cansancio o fatiga.</p></div>
                     </div>
-                    <div class="flex items-start gap-3 rounded-xl bg-purple-50/60 p-4 ring-1 ring-purple-100">
-                      <span class="mt-0.5 inline-flex h-7 w-7 items-center justify-center rounded-full bg-purple-200 text-purple-800">🎯</span>
-                      <div class="text-sm"><p class="font-semibold text-gray-900">Impacto</p><p>Cómo afecta a estudios/trabajo, familia y tareas.</p></div>
+                    <div class="flex items-start gap-3 rounded-xl bg-purple-50/80 p-4 ring-1 ring-purple-100">
+                      <span class="mt-0.5 inline-flex h-8 w-8 items-center justify-center rounded-full bg-purple-200 text-purple-800">🎯</span>
+                      <div class="text-sm md:text-base"><p class="font-semibold text-gray-900">Impacto</p><p>Cómo afecta a estudios/trabajo, familia y tareas.</p></div>
                     </div>
                   </div>
                 </div>
-                <div v-else-if="p.kind==='impact'" class="space-y-3 text-base md:text-lg text-gray-700">
+                <div v-else-if="p.kind==='impact'" class="space-y-3 text-lg md:text-xl text-gray-700">
                   <p>Si el <span class="font-semibold text-gray-900">impacto</span> es 2 o 3, estas dificultades interfieren de forma notable en tu vida diaria.</p>
                   <p>Pequeños pasos (rutinas, descanso, actividad) y apoyo profesional pueden marcar la diferencia.</p>
                 </div>
-                <div v-else-if="p.kind==='note'" class="space-y-3 text-base md:text-lg text-gray-700">
+                <div v-else-if="p.kind==='note'" class="space-y-3 text-lg md:text-xl text-gray-700">
                   <p>Este resultado es orientativo, no un diagnóstico. Si la puntuación es alta o el impacto elevado, busca ayuda.</p>
                   <p>Explora <router-link to="/ayuda" class="font-semibold text-rose-700 hover:text-rose-800">Recursos de apoyo</router-link> para dar el siguiente paso.</p>
                 </div>
@@ -357,7 +360,7 @@ export default {
           <div class="absolute inset-x-0 bottom-3 flex items-center justify-between px-4">
             <button class="inline-flex items-center rounded-full bg-white/80 px-3 py-1.5 text-xs font-semibold text-gray-800 ring-1 ring-gray-200 hover:bg-white" :disabled="current===0" @click="current = Math.max(0, current - 1)">Anterior</button>
             <div class="flex items-center gap-1">
-              <span v-for="(p, i) in pages" :key="'dot-'+i" class="h-1.5 w-1.5 rounded-full bg-gray-300" :class="i === current ? 'bg-gradient-to-r from-amber-500 to-rose-500' : ''"></span>
+              <span v-for="(p, i) in pages" :key="'dot-'+i" class="h-2 w-2 rounded-full bg-gray-300" :class="i === current ? 'bg-gradient-to-r from-amber-500 to-rose-500' : ''"></span>
             </div>
             <button class="inline-flex items-center rounded-full bg-white/80 px-3 py-1.5 text-xs font-semibold text-rose-700 ring-1 ring-rose-200 hover:bg-white" :disabled="current===pages.length-1" @click="current = Math.min(pages.length - 1, current + 1)">Siguiente</button>
           </div>
@@ -413,12 +416,7 @@ export default {
               </div>
             </article>
           </div>
-          <!-- Indicadores del carrusel -->
-          <div class="mt-4 flex items-center justify-center gap-2">
-            <button v-for="(c, i) in catBreakdown" :key="'dot-dom-'+i" class="h-2.5 w-2.5 rounded-full ring-1 ring-gray-300"
-                    :class="i===domainCurrent ? 'bg-gradient-to-r from-amber-500 to-rose-500' : 'bg-gray-200 hover:bg-gray-300'"
-                    @click="goDomain(i)"></button>
-          </div>
+          
         </div>
       </section>
     </div>
