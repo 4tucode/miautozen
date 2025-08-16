@@ -15,7 +15,8 @@ export default {
         { kind: 'domains' },
         { kind: 'impact' },
         { kind: 'note' }
-      ]
+      ],
+      deepByDomain: {}
     }
   },
   computed: {
@@ -117,6 +118,31 @@ export default {
         else if (p > 33) { nivel = 'moderado'; detalle = 'señales moderadas'; sugerencia = 'cuidar hábitos y rutinas puede ayudar' }
         return `Tienes un ${p}% en ${c.label} (${nivel}): ${detalle} de ${domainDesc}; ${sugerencia}.`
       }
+    },
+    isDomainRed(c) {
+      return Number(c?.wellbeingPercent || 0) < 34
+    },
+    hasDeepResultFor(key) {
+      return Boolean(this.deepByDomain[key])
+    },
+    domainLearnMoreCta(c) {
+      if (this.hasDeepResultFor(c?.key)) return `Ver diagnóstico de ${c.label.toLowerCase()}`
+      const map = {
+        animo: 'Saber más sobre tu ánimo',
+        ansiedad: 'Saber más sobre tu ansiedad',
+        bienestar_fisico: 'Saber más sobre tu bienestar físico',
+        impacto: 'Saber más sobre tu impacto'
+      }
+      return map[c?.key] || 'Saber más de este dominio'
+    },
+    domainActionTarget(c) {
+      if (!this.isDomainRed(c)) return null
+      const fromResultId = this.resultado?.id || this.$route?.query?.resultId || ''
+      const deep = this.deepByDomain[c?.key]
+      if (deep) {
+        return { name: 'domain-summary', params: { domain: c?.key }, query: { resultId: deep.id, ...(fromResultId ? { fromResultId } : {}) } }
+      }
+      return { name: 'domain-assessment', params: { domain: c?.key }, query: (fromResultId ? { fromResultId } : {}) }
     }
   },
   async created() {
@@ -140,6 +166,12 @@ export default {
           : todos[0]
         this.resultado = elegido || null
       }
+      // Cargar resultados de dominio del usuario
+      const todosUsuario = await listarResultadosPorUsuario(uid)
+      const deep = todosUsuario.filter(r => String(r.formId || '').startsWith('domain_'))
+      const map = {}
+      deep.forEach(d => { if (d.domain && !map[d.domain]) map[d.domain] = d })
+      this.deepByDomain = map
       if (!this.resultado) this.error = 'No se encontró el resultado recién guardado.'
     } catch (e) {
       this.error = 'No se pudo cargar el resumen.'
@@ -205,6 +237,16 @@ export default {
                     <p class="mt-1 text-[11px] leading-snug text-gray-600">
                       {{ explanationFor(c) }}
                     </p>
+                    <div class="mt-2">
+                      <template v-if="isDomainRed(c)">
+                        <router-link :to="domainActionTarget(c)" class="inline-flex items-center rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-purple-700 ring-1 ring-inset ring-purple-200 hover:bg-purple-50">
+                          {{ domainLearnMoreCta(c) }}
+                        </router-link>
+                      </template>
+                      <template v-else>
+                        <span class="inline-flex items-center rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-200">Dominio en buen estado</span>
+                      </template>
+                    </div>
                   </li>
                 </ul>
               </div>
@@ -277,7 +319,7 @@ export default {
                   <li class="flex items-start gap-3">
                     <!-- icon -->
                     <span class="mt-0.5 inline-flex h-6 w-6 items-center justify-center rounded-full bg-purple-100 text-purple-700">
-                      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a7 7 0 0 0-7 7v1.25a4.75 4.75 0 0 0-1 2.95V15a4 4 0 0 0 4 4h1v-2H8a2 2 0 0 1-2-2v-1.8c0-.9.37-1.76 1.02-2.38.2-.2.31-.47.31-.75V9a5 5 0 1 1 10 0v.32c0 .28.11.55.31.75.65.62 1.02 1.48 1.02 2.38V15a2 2 0 0 1-2 2h-1v2h1a4 4 0 0 0 4-4v-1.8c0-1.06-.36-2.08-1-2.9V9a7 7 0 0 0-7-7Z"/></svg>
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a7 7 0 0 0-7 7v1.25a4.75 4.75 0 0 0-1 2.95V15a4 4 0 0 0 4 4h1v-2H8a2 2 0 0 1-2-2v-1.8c0-.9.37-1.76 1.02-2.38.2-.2.31-.47.31-.75V9a5 5 0 1 1 10 0v.32c0 .28.11.55.31.75.65.62 1.02 1.48 1.02 2.38V15a2 2 0 0 1-2 2h-1v2h1a4 4 0 0 0 4-4v-1.8c0-1.06-.36-2.08-1-2.9V9a7 7 0  0 0-7-7Z"/></svg>
                     </span>
                     <div class="text-sm">
                       <p class="font-semibold text-gray-900">Ánimo</p>
