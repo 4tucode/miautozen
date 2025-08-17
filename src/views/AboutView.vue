@@ -28,21 +28,15 @@
 
             <div class="mt-6 flex items-center gap-3">
               <a :href="links.youtube" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium text-amber-800 bg-amber-50 border-amber-200 hover:shadow transition-all">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-5 w-5">
-                  <path d="M23.498 6.186a3.004 3.004 0 00-2.116-2.127C19.52 3.5 12 3.5 12 3.5s-7.52 0-9.382.559A3.004 3.004 0 00.502 6.186C0 8.058 0 12 0 12s0 3.942.502 5.814a3.004 3.004 0 002.116 2.127C4.48 20.5 12 20.5 12 20.5s7.52 0 9.382-.559a3.004 3.004 0 002.116-2.127C24 15.942 24 12 24 12s0-3.942-.502-5.814zM9.75 15.568V8.432L15.818 12 9.75 15.568z"/>
-                </svg>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-5 w-5"><path d="M23.498 6.186a3.004 3.004 0 00-2.116-2.127C19.52 3.5 12 3.5 12 3.5s-7.52 0-9.382.559A3.004 3.004 0 00.502 6.186C0 8.058 0 12 0 12s0 3.942.502 5.814a3.004 3.004 0 002.116 2.127C4.48 20.5 12 20.5 12 20.5s7.52 0 9.382-.559a3.004 3.004 0 002.116-2.127C24 15.942 24 12 24 12s0-3.942-.502-5.814zM9.75 15.568V8.432L15.818 12 9.75 15.568z"/></svg>
                 YouTube
               </a>
               <a :href="links.instagram" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium text-rose-700 bg-rose-50 border-rose-200 hover:shadow transition-all">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-5 w-5">
-                  <path d="M7 2C4.243 2 2 4.243 2 7v10c0 2.757 2.243 5 5 5h10c2.757 0 5-2.243 5-5V7c0-2.757-2.243-5-5-5H7zm0 2h10c1.654 0 3 1.346 3 3v10c0 1.654-1.346 3-3 3H7c-1.654 0-3-1.346-3-3V7c0-1.654 1.346-3 3-3zm12 1a1 1 0 110 2 1 1 0 010-2zM12 7a5 5 0 100 10 5 5 0 000-10z"/>
-                </svg>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-5 w-5"><path d="M7 2C4.243 2 2 4.243 2 7v10c0 2.757 2.243 5 5 5h10c2.757 0 5-2.243 5-5V7c0-2.757-2.243-5-5-5H7zm0 2h10c1.654 0 3 1.346 3 3v10c0 1.654-1.346 3-3 3H7c-1.654 0-3-1.346-3-3V7c0-1.654 1.346-3 3-3zm12 1a1 1 0 110 2 1 1 0 010-2zM12 7a5 5 0 100 10 5 5 0 000-10z"/></svg>
                 Instagram
               </a>
               <a :href="links.linkedin" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium text-sky-700 bg-sky-50 border-sky-200 hover:shadow transition-all">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-5 w-5">
-                  <path d="M4.98 3.5C4.98 4.88 3.86 6 2.5 6S0 4.88 0 3.5 1.12 1 2.5 1s2.48 1.12 2.48 2.5zM0 8h5v15H0V8zm7.5 0h4.8v2.05h.07c.67-1.27 2.3-2.6 4.73-2.6C21.4 7.45 24 9.62 24 14.02V23H19v-8.03c0-1.91-.03-4.37-2.66-4.37-2.66 0-3.07 2.08-3.07 4.23V23H7.5V8z"/>
-                </svg>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-5 w-5"><path d="M4.98 3.5C4.98 4.88 3.86 6 2.5 6S0 4.88 0 3.5 1.12 1 2.5 1s2.48 1.12 2.48 2.5zM0 8h5v15H0V8zm7.5 0h4.8v2.05h.07c.67-1.27 2.3-2.6 4.73-2.6C21.4 7.45 24 9.62 24 14.02V23H19v-8.03c0-1.91-.03-4.37-2.66-4.37-2.66 0-3.07 2.08-3.07 4.23V23H7.5V8z"/></svg>
                 LinkedIn
               </a>
             </div>
