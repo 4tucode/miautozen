@@ -17,7 +17,16 @@ export default {
         { kind: 'note' }
       ],
       deepByDomain: {},
-      domainCurrent: 0
+      domainCurrent: 0,
+      interpretSections: [
+        { id: 'intro', label: 'Introducción' },
+        { id: 'puntuacion', label: 'Puntuación' },
+        { id: 'dominios', label: 'Dominios' },
+        { id: 'impacto', label: 'Impacto' },
+        { id: 'nota', label: 'Nota' }
+      ],
+      activeSection: 'intro',
+      interpretObserver: null
     }
   },
   computed: {
@@ -82,6 +91,35 @@ export default {
     }
   },
   methods: {
+    slideBg(kind) {
+      try {
+        if (kind === 'intro') return require('@/assets/fondo.jpg')
+        if (kind === 'total') return require('@/assets/zen3.png')
+        if (kind === 'domains') return require('@/assets/zen2.png')
+        if (kind === 'impact') return require('@/assets/zen1.png')
+        if (kind === 'note') return require('@/assets/fondo.jpg')
+      } catch (e) {
+        // no-op
+      }
+      return require('@/assets/fondo.jpg')
+    },
+    slideRing(kind) {
+      if (kind === 'intro') return 'ring-amber-200'
+      if (kind === 'total') return 'ring-emerald-200'
+      if (kind === 'domains') return 'ring-purple-200'
+      if (kind === 'impact') return 'ring-rose-200'
+      return 'ring-amber-200'
+    },
+    slideIllustration(kind) {
+      try {
+        if (kind === 'intro') return require('@/assets/int1 (1).png')
+        if (kind === 'total') return require('@/assets/int1 (2).png')
+        return require('@/assets/int1 (3).png')
+      } catch (e) {
+        // no-op
+      }
+      return require('@/assets/int1 (1).png')
+    },
     domainBgClass(key) {
       if (key === 'animo') return 'from-amber-200/70 to-rose-200/60 ring-amber-200'
       if (key === 'ansiedad') return 'from-rose-200/70 to-purple-200/60 ring-rose-200'
@@ -208,6 +246,17 @@ export default {
         return { name: 'domain-summary', params: { domain: c?.key }, query: { resultId: deep.id, ...(fromResultId ? { fromResultId } : {}) } }
       }
       return { name: 'domain-assessment', params: { domain: c?.key }, query: (fromResultId ? { fromResultId } : {}) }
+    },
+    scrollToSection(id) {
+      try {
+        const el = this.$el?.querySelector?.('#' + id)
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          this.activeSection = id
+        }
+      } catch (e) {
+        // no-op
+      }
     }
   },
   async created() {
@@ -254,6 +303,23 @@ export default {
     } catch (e) {
       // no-op
     }
+    // observar secciones de interpretación para marcar pestaña activa
+    try {
+      const obs = new IntersectionObserver((entries) => {
+        entries.forEach(en => {
+          if (en.isIntersecting && en.target?.id) {
+            this.activeSection = en.target.id
+          }
+        })
+      }, { root: null, rootMargin: '0px 0px -60% 0px', threshold: 0.4 })
+      this.interpretSections.forEach(s => {
+        const node = this.$el?.querySelector?.('#' + s.id)
+        node && obs.observe(node)
+      })
+      this.interpretObserver = obs
+    } catch (e) {
+      // no-op
+    }
   },
   beforeUnmount() {
     try {
@@ -262,14 +328,19 @@ export default {
     } catch (e) {
       // no-op
     }
+    try {
+      this.interpretObserver && this.interpretObserver.disconnect()
+    } catch (e) {
+      // no-op
+    }
   }
 }
 </script>
 
 <template>
-  <section class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10">
+  <section class="mx-auto max-w-7xl">
     <!-- Hero visual -->
-    <div class="relative overflow-hidden rounded-3xl border border-amber-200/50 bg-gradient-to-br from-amber-50 via-rose-50 to-emerald-50 shadow-sm">
+    <div class="relative overflow-hidden  bg-gradient-to-br from-amber-50 via-rose-50 to-emerald-50 shadow-sm">
       <img src="@/assets/fondo.jpg" alt="" class="absolute inset-0 h-full w-full object-cover opacity-20" />
       <div class="absolute inset-0 bg-gradient-to-t from-white/70 via-white/40 to-transparent"></div>
       <div class="relative px-6 sm:px-10 py-10 sm:py-14">
@@ -281,7 +352,7 @@ export default {
           <div class="rounded-2xl bg-white/80 backdrop-blur ring-1 ring-amber-200 p-5">
             <p class="text-xs font-medium text-amber-700">Bienestar global</p>
             <p class="mt-1 text-3xl md:text-4xl font-extrabold text-amber-800">{{ globalWellbeingPercent }}%</p>
-          </div>
+              </div>
           <div class="rounded-2xl bg-white/80 backdrop-blur ring-1 ring-rose-200 p-5">
             <p class="text-xs font-medium text-rose-700">Puntuación total</p>
             <p class="mt-1 text-3xl md:text-4xl font-extrabold text-rose-800">{{ resultado?.puntuacion }} pts</p>
@@ -295,87 +366,128 @@ export default {
           <router-link :to="{ name: 'results' }" class="inline-flex items-center rounded-full bg-gradient-to-r from-amber-500 to-rose-500 px-6 py-2.5 text-sm font-semibold text-white shadow hover:opacity-95">Ver todos mis resultados</router-link>
         </div>
       </div>
-    </div>
+              </div>
 
     <!-- Estados de carga/errores -->
     <p v-if="cargando" class="mt-8 h-40 w-full animate-pulse rounded-2xl bg-gray-200/70"></p>
     <p v-else-if="error" class="mt-8 text-sm font-medium text-red-600">{{ error }}</p>
 
-    <div v-else-if="resultado" class="mt-10 space-y-12">
-      <!-- Slider interpretativo -->
+    <div v-else-if="resultado" class=" space-y-12">
+      <!-- Interpretación sin carrusel: todo visible -->
       <section>
-        <h2 class="text-3xl md:text-4xl font-extrabold tracking-tight text-gray-900">
+        <!--<h2 class="text-3xl md:text-4xl font-extrabold tracking-tight text-gray-900">
           <span class="bg-gradient-to-r from-amber-600 via-rose-500 to-emerald-600 bg-clip-text text-transparent">Cómo interpretar tus resultados</span>
-        </h2>
-        <div class="relative mt-4 overflow-hidden rounded-2xl ring-1 ring-gray-200 bg-white/60">
-          <div class="flex transition-transform duration-300 ease-out" :style="{ width: (pages.length*100)+'%', transform: 'translateX(-'+ (current*100) +'%)' }">
-            <div v-for="(p, i) in pages" :key="'slide-'+i" class="w-full shrink-0 px-6 py-6 md:px-8 md:py-8">
-              <div :key="p.kind" class="rounded-2xl ring-1 p-5 sm:p-6 bg-white/85 backdrop-blur"
-                   :class="p.kind==='intro' ? 'ring-amber-100' : p.kind==='total' ? 'ring-emerald-100' : p.kind==='domains' ? 'ring-purple-100' : p.kind==='impact' ? 'ring-rose-100' : 'ring-amber-100'">
-                <div v-if="p.kind==='intro'" class="space-y-3 text-lg md:text-xl text-gray-700">
-                  <p>Esta autoevaluación resume tu bienestar emocional con 7 preguntas (0–3 por ítem, total 0–21).</p>
-                  <p>Úsalo como una guía para conocerte mejor. Si algo te preocupa, busca apoyo: pedir ayuda es una fortaleza.</p>
-                </div>
-                <div v-else-if="p.kind==='total'" class="space-y-3 text-lg md:text-xl text-gray-700">
-                  <p class="font-semibold text-gray-900">Tu puntuación total se interpreta así:</p>
-                  <ul class="space-y-2">
-                    <li class="flex items-center gap-2"><span class="inline-flex h-3 w-3 rounded-full bg-green-500"></span><span><span class="font-bold">0–4</span> Muy baja: señales leves o ausentes.</span></li>
-                    <li class="flex items-center gap-2"><span class="inline-flex h-3 w-3 rounded-full bg-emerald-500"></span><span><span class="font-bold">5–9</span> Leve: hábitos y rutinas pueden ayudar mucho.</span></li>
-                    <li class="flex items-center gap-2"><span class="inline-flex h-3 w-3 rounded-full bg-amber-500"></span><span><span class="font-bold">10–14</span> Moderada: valora apoyo y acciones sostenidas.</span></li>
-                    <li class="flex items-center gap-2"><span class="inline-flex h-3 w-3 rounded-full bg-rose-500"></span><span><span class="font-bold">15–21</span> Alta: busca ayuda profesional y apóyate en tu red cercana.</span></li>
-                  </ul>
-                </div>
-                <div v-else-if="p.kind==='domains'" class="space-y-4 text-lg md:text-xl text-gray-700">
-                  <p class="font-semibold text-gray-900">Qué mide cada dominio:</p>
-                  <div class="grid gap-4 sm:grid-cols-2">
-                    <div class="flex items-start gap-3 rounded-xl bg-amber-50/80 p-4 ring-1 ring-amber-100">
-                      <span class="mt-0.5 inline-flex h-8 w-8 items-center justify-center rounded-full bg-amber-200 text-amber-800">🙂</span>
-                      <div class="text-sm md:text-base"><p class="font-semibold text-gray-900">Ánimo</p><p>Estado de ánimo bajo y pérdida de interés.</p></div>
-                    </div>
-                    <div class="flex items-start gap-3 rounded-xl bg-rose-50/80 p-4 ring-1 ring-rose-100">
-                      <span class="mt-0.5 inline-flex h-8 w-8 items-center justify-center rounded-full bg-rose-200 text-rose-800">⚡</span>
-                      <div class="text-sm md:text-base"><p class="font-semibold text-gray-900">Ansiedad</p><p>Preocupación constante, tensión o nerviosismo.</p></div>
-                    </div>
-                    <div class="flex items-start gap-3 rounded-xl bg-emerald-50/80 p-4 ring-1 ring-emerald-100">
-                      <span class="mt-0.5 inline-flex h-8 w-8 items-center justify-center rounded-full bg-emerald-200 text-emerald-800">🌙</span>
-                      <div class="text-sm md:text-base"><p class="font-semibold text-gray-900">Bienestar físico</p><p>Sueño y energía: descanso, cansancio o fatiga.</p></div>
-                    </div>
-                    <div class="flex items-start gap-3 rounded-xl bg-purple-50/80 p-4 ring-1 ring-purple-100">
-                      <span class="mt-0.5 inline-flex h-8 w-8 items-center justify-center rounded-full bg-purple-200 text-purple-800">🎯</span>
-                      <div class="text-sm md:text-base"><p class="font-semibold text-gray-900">Impacto</p><p>Cómo afecta a estudios/trabajo, familia y tareas.</p></div>
-                    </div>
+        </h2>-->
+        
+        <!-- Portada full width (intro) -->
+        <div id="intro" class="-mx-4 sm:-mx-6 lg:-mx-8">
+          <div class="relative h-64 md:h-80 lg:h-96 overflow-hidden">
+            <img src="@/assets/fondo.jpg" alt="Portada bienestar" class="absolute inset-0 h-full w-full object-cover" />
+            <div class="absolute inset-0 bg-gradient-to-r from-black/40 via-black/20 to-transparent"></div>
+            <div class="relative h-full w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center">
+              <div class="max-w-3xl">
+                <h3 class="text-3xl md:text-5xl font-extrabold tracking-tight text-white">Tu bienestar, en una mirada</h3>
+                <div class="mt-4 flex flex-col md:flex-row gap-3">
+                  <div class="rounded-xl bg-white/90 backdrop-blur ring-1 ring-gray-200 px-4 py-3 text-gray-900 text-sm md:text-base">
+                    7 preguntas (0–3 por ítem, total 0–21).
                   </div>
-                </div>
-                <div v-else-if="p.kind==='impact'" class="space-y-3 text-lg md:text-xl text-gray-700">
-                  <p>Si el <span class="font-semibold text-gray-900">impacto</span> es 2 o 3, estas dificultades interfieren de forma notable en tu vida diaria.</p>
-                  <p>Pequeños pasos (rutinas, descanso, actividad) y apoyo profesional pueden marcar la diferencia.</p>
-                </div>
-                <div v-else-if="p.kind==='note'" class="space-y-3 text-lg md:text-xl text-gray-700">
-                  <p>Este resultado es orientativo, no un diagnóstico. Si la puntuación es alta o el impacto elevado, busca ayuda.</p>
-                  <p>Explora <router-link to="/ayuda" class="font-semibold text-rose-700 hover:text-rose-800">Recursos de apoyo</router-link> para dar el siguiente paso.</p>
+                  <div class="rounded-xl bg-white/90 backdrop-blur ring-1 ring-gray-200 px-4 py-3 text-gray-900 text-sm md:text-base">
+                    Una guía amable para conocerte mejor y cuidar tus hábitos
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-          <div class="absolute inset-x-0 bottom-3 flex items-center justify-between px-4">
-            <button class="inline-flex items-center rounded-full bg-white/80 px-3 py-1.5 text-xs font-semibold text-gray-800 ring-1 ring-gray-200 hover:bg-white" :disabled="current===0" @click="current = Math.max(0, current - 1)">Anterior</button>
-            <div class="flex items-center gap-1">
-              <span v-for="(p, i) in pages" :key="'dot-'+i" class="h-2 w-2 rounded-full bg-gray-300" :class="i === current ? 'bg-gradient-to-r from-amber-500 to-rose-500' : ''"></span>
+        </div>
+        <div class="relative overflow-hidden ring-1 ring-gray-200">
+          <!-- Fondo zen -->
+          <div class="absolute inset-0">
+            <div class="h-full w-full bg-gradient-to-br from-amber-50 via-rose-50 to-emerald-50"></div>
+            <div class="pointer-events-none absolute -top-16 -left-16 h-72 w-72 rounded-full bg-amber-200/40 blur-3xl"></div>
+            <div class="pointer-events-none absolute -bottom-20 left-1/2 h-80 w-80 -translate-x-1/2 rounded-full bg-rose-200/40 blur-3xl"></div>
+            <div class="pointer-events-none absolute -top-10 -right-16 h-72 w-72 rounded-full bg-emerald-200/40 blur-3xl"></div>
+          </div>
+          <div class="relative p-6 md:p-10 space-y-6">
+            <!-- Puntuación card -->
+            <div id="puntuacion" class="rounded-2xl bg-white/95 ring-1 ring-gray-200 shadow-sm p-6 md:p-7">
+              <h3 class="text-2xl md:text-3xl font-extrabold tracking-tight text-gray-900">Interpretación de la puntuación total</h3>
+              <p class="mt-3 text-lg md:text-xl text-gray-800">Usa el rango para orientarte y decidir próximos pasos. Si la puntuación es alta, prioriza pedir ayuda profesional.</p>
+              <div class="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <div class="rounded-xl bg-emerald-50 ring-1 ring-emerald-200 p-4 text-center">
+                  <div class="text-3xl">😊</div>
+                  <div class="mt-1 text-base md:text-lg font-semibold text-emerald-900">0–4</div>
+                  <p class="text-sm text-emerald-800/80">Muy baja</p>
+                    </div>
+                <div class="rounded-xl bg-emerald-100 ring-1 ring-emerald-300 p-4 text-center">
+                  <div class="text-3xl">🙂</div>
+                  <div class="mt-1 text-base md:text-lg font-semibold text-emerald-900">5–9</div>
+                  <p class="text-sm text-emerald-900/80">Leve</p>
+                    </div>
+                <div class="rounded-xl bg-amber-100 ring-1 ring-amber-300 p-4 text-center">
+                  <div class="text-3xl">😐</div>
+                  <div class="mt-1 text-base md:text-lg font-semibold text-amber-900">10–14</div>
+                  <p class="text-sm text-amber-900/80">Moderada</p>
+                    </div>
+                <div class="rounded-xl bg-rose-100 ring-1 ring-rose-300 p-4 text-center">
+                  <div class="text-3xl">☹️</div>
+                  <div class="mt-1 text-base md:text-lg font-semibold text-rose-900">15–21</div>
+                  <p class="text-sm text-rose-900/80">Alta</p>
+                    </div>
+              </div>
             </div>
-            <button class="inline-flex items-center rounded-full bg-white/80 px-3 py-1.5 text-xs font-semibold text-rose-700 ring-1 ring-rose-200 hover:bg-white" :disabled="current===pages.length-1" @click="current = Math.min(pages.length - 1, current + 1)">Siguiente</button>
+            <!-- Dominios card -->
+            <div id="dominios" class="rounded-2xl bg-white/95 ring-1 ring-gray-200 shadow-sm p-6 md:p-7">
+              <h3 class="text-2xl md:text-3xl font-extrabold tracking-tight text-gray-900">Qué mide cada dominio</h3>
+              <div class="mt-4 grid gap-5 sm:grid-cols-2 md:gap-6">
+                <div class="rounded-3xl ring-1 ring-amber-100 bg-amber-50/90 p-5 md:p-6">
+                  <div class="flex items-center gap-3">
+                    <span class="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-200 text-amber-800 text-3xl">🙂</span>
+                    <h4 class="text-2xl md:text-3xl font-extrabold text-gray-900">Ánimo</h4>
+                  </div>
+                  <p class="mt-3 text-lg md:text-xl text-gray-800">Estado de ánimo bajo y pérdida de interés.</p>
+                </div>
+                <div class="rounded-3xl ring-1 ring-rose-100 bg-rose-50/90 p-5 md:p-6">
+                  <div class="flex items-center gap-3">
+                    <span class="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-200 text-rose-800 text-3xl">⚡</span>
+                    <h4 class="text-2xl md:text-3xl font-extrabold text-gray-900">Ansiedad</h4>
+                  </div>
+                  <p class="mt-3 text-lg md:text-xl text-gray-800">Preocupación constante, tensión o nerviosismo.</p>
+                </div>
+                <div class="rounded-3xl ring-1 ring-emerald-100 bg-emerald-50/90 p-5 md:p-6">
+                  <div class="flex items-center gap-3">
+                    <span class="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-200 text-emerald-800 text-3xl">🌙</span>
+                    <h4 class="text-2xl md:text-3xl font-extrabold text-gray-900">Bienestar físico</h4>
+                  </div>
+                  <p class="mt-3 text-lg md:text-xl text-gray-800">Sueño y energía: descanso, cansancio o fatiga.</p>
+                </div>
+                <div class="rounded-3xl ring-1 ring-purple-100 bg-purple-50/90 p-5 md:p-6">
+                  <div class="flex items-center gap-3">
+                    <span class="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-purple-200 text-purple-800 text-3xl">🎯</span>
+                    <h4 class="text-2xl md:text-3xl font-extrabold text-gray-900">Impacto</h4>
+                  </div>
+                  <p class="mt-3 text-lg md:text-xl text-gray-800">Cómo afecta a estudios/trabajo, familia y tareas.</p>
+              </div>
+              </div>
+            </div>
+           
+            <!-- Nota card -->
+            <div id="nota" class="rounded-2xl bg-white/95 ring-1 ring-gray-200 shadow-sm p-6 md:p-7">
+              <h3 class="text-2xl md:text-3xl font-extrabold tracking-tight text-gray-900">Recuerda</h3>
+              <p class="mt-3 text-lg md:text-xl text-gray-800">Este resultado es orientativo, no un diagnóstico. Revisa recursos y considera hablar con un profesional si lo ves necesario. Explora <router-link to="/ayuda" class="font-semibold text-rose-700 hover:text-rose-800">Recursos de apoyo</router-link>.</p>
+            </div>
           </div>
         </div>
       </section>
 
       <!-- Dominios visuales -->
       <section>
-        <div class="flex items-end justify-between gap-4">
+        <div class="flex items-end justify_between gap-4">
           <h2 class="text-2xl md:text-3xl font-bold text-gray-900">Tus dominios</h2>
           <div class="hidden sm:flex items-center gap-2">
             <button class="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white ring-1 ring-gray-200 text-gray-700 hover:bg-gray-50" @click="scrollDomains(-1)">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-4 w-4"><path d="M15.75 19.5L8.25 12l7.5-7.5"/></svg>
             </button>
-            <button class="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white ring-1 ring-gray-200 text-gray-700 hover:bg-gray-50" @click="scrollDomains(1)">
+            <button class="inline-flex h-9 w-9 items_center justify-center rounded-full bg-white ring-1 ring-gray-200 text-gray-700 hover:bg-gray-50" @click="scrollDomains(1)">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-4 w-4"><path d="M8.25 4.5L15.75 12l-7.5 7.5"/></svg>
             </button>
           </div>
@@ -412,8 +524,8 @@ export default {
                   <template v-else>
                     <span class="inline-flex items-center rounded-full bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-200">Dominio en buen estado</span>
                   </template>
-                </div>
-              </div>
+      </div>
+      </div>
             </article>
           </div>
           
