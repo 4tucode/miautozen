@@ -12,12 +12,26 @@
 
         <!-- Center: Links desktop -->
         <div class="hidden md:flex items-center gap-6">
-          <router-link class="text-gray-700 hover:text-gray-900" :class="menuItemClass" :to="{ name: 'home' }">Inicio</router-link>
-          <router-link class="text-gray-700 hover:text-gray-900" :class="menuItemClass" :to="{ name: 'assessment', params: { slug: defaultSlug } }">Autoevaluación</router-link>
-          <router-link class="text-gray-700 hover:text-gray-900" :class="menuItemClass" :to="{ name: 'help' }">Ayuda</router-link>
-          <router-link class="text-gray-700 hover:text-gray-900" :class="menuItemClass" :to="{ name: 'resources' }">Recursos</router-link>
-          <router-link class="text-gray-700 hover:text-gray-900" :class="menuItemClass" :to="{ name: 'about' }">Sobre</router-link>
-          <router-link class="text-gray-700 hover:text-gray-900" :class="menuItemClass" :to="{ name: 'contact' }">Contacto</router-link>
+          <router-link class="text-gray-700 hover:text-gray-900" :class="menuItemClass" :to="{ name: 'home' }">
+            <span>Inicio</span>
+            <span class="nav-underline"></span>
+          </router-link>
+          <router-link class="text-gray-700 hover:text-gray-900" :class="menuItemClass" :to="{ name: 'assessment', params: { slug: defaultSlug } }">
+            <span>Autoevaluación</span>
+            <span class="nav-underline"></span>
+          </router-link>
+          <router-link class="text-gray-700 hover:text-gray-900" :class="menuItemClass" :to="{ name: 'resources' }">
+            <span>Recursos</span>
+            <span class="nav-underline"></span>
+          </router-link>
+          <router-link class="text-gray-700 hover:text-gray-900" :class="menuItemClass" :to="{ name: 'help' }">
+            <span>Ayuda</span>
+            <span class="nav-underline"></span>
+          </router-link>
+          <router-link class="text-gray-700 hover:text-gray-900" :class="menuItemClass" :to="{ name: 'contact' }">
+            <span>Contacto</span>
+            <span class="nav-underline"></span>
+          </router-link>
         </div>
 
         <!-- Right: Auth -->
@@ -61,9 +75,8 @@
       <div class="space-y-1 px-4 py-3">
         <router-link class="block rounded px-3 py-2 text-gray-700 hover:bg-gray-100" :class="menuItemClass" :to="{ name: 'home' }" @click="open=false">Inicio</router-link>
         <router-link class="block rounded px-3 py-2 text-gray-700 hover:bg-gray-100" :class="menuItemClass" :to="{ name: 'assessment', params: { slug: defaultSlug } }" @click="open=false">Autoevaluación</router-link>
-        <router-link class="block rounded px-3 py-2 text-gray-700 hover:bg-gray-100" :class="menuItemClass" :to="{ name: 'help' }" @click="open=false">Ayuda</router-link>
         <router-link class="block rounded px-3 py-2 text-gray-700 hover:bg-gray-100" :class="menuItemClass" :to="{ name: 'resources' }" @click="open=false">Recursos</router-link>
-        <router-link class="block rounded px-3 py-2 text-gray-700 hover:bg-gray-100" :class="menuItemClass" :to="{ name: 'about' }" @click="open=false">Sobre</router-link>
+        <router-link class="block rounded px-3 py-2 text-gray-700 hover:bg-gray-100" :class="menuItemClass" :to="{ name: 'help' }" @click="open=false">Ayuda</router-link>
         <router-link class="block rounded px-3 py-2 text-gray-700 hover:bg-gray-100" :class="menuItemClass" :to="{ name: 'contact' }" @click="open=false">Contacto</router-link>
 
         <template v-if="$store.getters.isAuth">
@@ -106,7 +119,7 @@ export default {
   },
   computed: {
     logo() { return logo },
-    menuItemClass() { return 'animate-menu-in' },
+    menuItemClass() { return 'animate-menu-in nav-link' },
     resultClasses() {
       const s = Number(this.latestScore || 0)
       if (s <= 7) return 'text-emerald-700 border-emerald-200/60'
@@ -156,6 +169,28 @@ export default {
 .animate-menu-in {
   animation: menuIn 400ms ease-out both;
 }
+.nav-link {
+  position: relative;
+  transition: color 200ms ease;
+}
+
+.nav-underline {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -6px;
+  height: 2px;
+  background: linear-gradient(90deg, #7c3aed, #a78bfa, #10b981);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 280ms ease;
+}
+
+.router-link-active .nav-underline,
+.nav-link:hover .nav-underline {
+  transform: scaleX(1);
+}
+
 
 /* stagger básico para los enlaces del menú en desktop */
 .md\\:flex > .animate-menu-in:nth-child(1) { animation-delay: 40ms; }
