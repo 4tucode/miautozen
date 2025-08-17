@@ -117,7 +117,7 @@ export default {
         const variant = getVariant(binding.value);
         const delayMs = getDelay(binding.value);
 
-        el.classList.add("opacity-0", "transition-all", "duration-700", "ease-out", "will-change-transform");
+        el.classList.add("opacity-0", "transition-all", "duration-1000", "ease-in-out", "will-change-transform");
 
         switch (variant) {
           case "fade-up":
