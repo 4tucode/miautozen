@@ -46,8 +46,11 @@
     </section>
 
     <!-- Características -->
-    <section class="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-      <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+    <section class="relative overflow-hidden mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+      <div class="absolute inset-0 -z-10 bg-gradient-to-br from-amber-50 via-rose-50 to-orange-50"></div>
+      <div class="pointer-events-none absolute -top-24 -left-24 h-72 w-72 rounded-full bg-gradient-to-br from-rose-300 via-amber-200 to-orange-200 opacity-40 blur-3xl"></div>
+      <div class="pointer-events-none absolute -bottom-28 -right-20 h-80 w-80 rounded-full bg-gradient-to-tr from-emerald-200 via-amber-200 to-rose-200 opacity-40 blur-3xl"></div>
+      <div class="relative grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
         <div class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
           <div class="flex items-center gap-3">
             <span class="inline-block h-2.5 w-2.5 rounded-full bg-[#BE51D4]"></span>
@@ -73,7 +76,10 @@
     </section>
 
     <!-- Testimonios -->
-    <section class="bg-gray-50 py-12">
+    <section class="relative overflow-hidden py-12">
+      <div class="absolute inset-0 -z-10 bg-gradient-to-r from-amber-50 via-rose-50 to-emerald-50"></div>
+      <div class="pointer-events-none absolute -top-24 left-1/3 h-80 w-80 rounded-full bg-gradient-to-br from-amber-300 via-rose-300 to-emerald-200 opacity-30 blur-3xl"></div>
+      <div class="pointer-events-none absolute -bottom-24 right-1/4 h-96 w-96 rounded-full bg-gradient-to-tr from-rose-200 via-amber-200 to-emerald-200 opacity-30 blur-3xl"></div>
       <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <h2 class="text-center text-2xl font-bold text-gray-900">Lo que dicen nuestros usuarios</h2>
         <div class="mt-6 grid grid-cols-1 gap-6 md:grid-cols-3">
