@@ -21,11 +21,11 @@
           <router-link class="text-gray-700" :class="menuItemClass" :to="{ name: 'resources' }">
             <span>Recursos</span>
           </router-link>
-          <router-link class="text-gray-700" :class="menuItemClass" :to="{ name: 'help' }">
-            <span>Ayuda</span>
-          </router-link>
           <router-link class="text-gray-700" :class="menuItemClass" :to="{ name: 'contact' }">
             <span>Contacto</span>
+          </router-link>
+          <router-link class="text-gray-700" :class="menuItemClass" :to="{ name: 'help' }">
+            <span>Ayuda</span>
           </router-link>
         </div>
 

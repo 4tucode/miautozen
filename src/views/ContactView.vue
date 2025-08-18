@@ -119,7 +119,7 @@ export default {
 </script>
 
 <template>
-  <section class="mx-auto max-w-7xl pb-16 sm:pb-24">
+  <section class="mx-auto max-w-7xl pb-16 sm:pb-24 bg-gradient-to-b from-[#f9aaff] via-[#fcedd0] to-[#ffe6f2]">
     <!-- Hero fullwidth -->
     <div class="relative isolate">
       <img
