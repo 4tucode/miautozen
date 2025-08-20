@@ -5,17 +5,17 @@
       <div class="absolute inset-0 bg-black/20"></div>
       <div class="relative mx-auto max-w-7xl px-4 py-24 sm:px-6 lg:px-8">
         <div class="text-center">
-          <div class="mb-6 inline-flex items-center rounded-full bg-white/20 px-4 py-2 text-sm font-medium backdrop-blur">
+          <div v-reveal class="reveal mb-6 inline-flex items-center rounded-full bg-white/20 px-4 py-2 text-sm font-medium backdrop-blur" style="--reveal-delay: 0ms">
             <svg class="mr-2 h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
               <path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
             </svg>
             Ayuda Inmediata Disponible
           </div>
-          <h1 class="mb-6 text-4xl font-bold tracking-tight sm:text-6xl">
+          <h1 v-reveal class="reveal mb-6 text-4xl font-bold tracking-tight sm:text-6xl" style="--reveal-delay: 120ms">
             Estamos aquí para
             <span class="text-yellow-300">ayudarte</span>
           </h1>
-          <p class="mx-auto max-w-2xl text-xl text-blue-100">
+          <p v-reveal class="reveal mx-auto max-w-2xl text-xl text-blue-100" style="--reveal-delay: 240ms">
             Encuentra recursos de apoyo inmediato, profesionales especializados y herramientas para cuidar tu bienestar mental. No estás solo en esto.
           </p>
         </div>
@@ -26,17 +26,22 @@
       <!-- Ayuda Inmediata -->
       <section class="mb-16">
         <div class="text-center mb-12">
-          <h2 class="text-3xl font-bold text-gray-900 mb-4">🚨 Ayuda Inmediata</h2>
-          <p class="text-gray-600 max-w-2xl mx-auto">Si estás en crisis o necesitas apoyo urgente, estos recursos están disponibles 24/7</p>
+          <h2 v-reveal class="reveal text-3xl font-bold text-gray-900 mb-4" style="--reveal-delay: 0ms">🚨 Ayuda Inmediata</h2>
+          <p v-reveal class="reveal text-gray-600 max-w-2xl mx-auto" style="--reveal-delay: 120ms">Si estás en crisis o necesitas apoyo urgente, estos recursos están disponibles 24/7</p>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 mb-8">
           <!-- Teléfono de la Esperanza -->
-          <div class="bg-white rounded-2xl shadow-lg border border-red-100 p-6 hover:shadow-xl transition-all">
+          <div v-reveal class="reveal bg-white rounded-2xl shadow-lg border border-red-100 p-6 hover:shadow-xl transition-all" style="--reveal-delay: 0ms">
             <div class="flex items-start gap-4">
               <div class="rounded-full bg-red-100 p-3">
                 <svg class="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                  <circle cx="12" cy="12" r="9" stroke-width="2" />
+                  <circle cx="12" cy="12" r="4" stroke-width="2" />
+                  <line x1="4.93" y1="4.93" x2="9.17" y2="9.17" stroke-width="2" stroke-linecap="round" />
+                  <line x1="14.83" y1="14.83" x2="19.07" y2="19.07" stroke-width="2" stroke-linecap="round" />
+                  <line x1="14.83" y1="9.17" x2="19.07" y2="4.93" stroke-width="2" stroke-linecap="round" />
+                  <line x1="4.93" y1="19.07" x2="9.17" y2="14.83" stroke-width="2" stroke-linecap="round" />
                 </svg>
               </div>
               <div class="flex-1">
@@ -56,11 +61,15 @@
           </div>
 
           <!-- Emergencias -->
-          <div class="bg-white rounded-2xl shadow-lg border border-orange-100 p-6 hover:shadow-xl transition-all">
+          <div v-reveal class="reveal bg-white rounded-2xl shadow-lg border border-orange-100 p-6 hover:shadow-xl transition-all" style="--reveal-delay: 120ms">
             <div class="flex items-start gap-4">
               <div class="rounded-full bg-orange-100 p-3">
                 <svg class="h-6 w-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.268 18.5c-.77.833.192 2.5 1.732 2.5z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 13a4 4 0 118 0v4H8v-4z" />
+                  <rect x="6" y="17" width="12" height="3" rx="1" stroke-width="2" />
+                  <line x1="12" y1="3" x2="12" y2="6" stroke-width="2" stroke-linecap="round" />
+                  <line x1="4.22" y1="6.22" x2="6.34" y2="8.34" stroke-width="2" stroke-linecap="round" />
+                  <line x1="19.78" y1="6.22" x2="17.66" y2="8.34" stroke-width="2" stroke-linecap="round" />
                 </svg>
               </div>
               <div class="flex-1">
@@ -79,54 +88,18 @@
             </div>
           </div>
 
-          <!-- Chat online -->
-          <div class="bg-white rounded-2xl shadow-lg border border-blue-100 p-6 hover:shadow-xl transition-all">
-            <div class="flex items-start gap-4">
-              <div class="rounded-full bg-blue-100 p-3">
-                <svg class="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                </svg>
-              </div>
-              <div class="flex-1">
-                <h3 class="font-semibold text-gray-900 mb-2">Chat Online</h3>
-                <p class="text-gray-600 text-sm mb-3">Apoyo inmediato por chat</p>
-                <a href="https://www.telefonodelaesperanza.org/chat" target="_blank" rel="noopener noreferrer" class="inline-flex items-center text-blue-600 font-medium hover:text-blue-700">
-                  <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                  </svg>
-                  Iniciar chat
-                </a>
-              </div>
-            </div>
-          </div>
         </div>
-
-        <!-- Email de contacto -->
-        <div class="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-2xl p-6 border border-emerald-200">
-          <div class="flex items-center gap-4">
-            <div class="rounded-full bg-emerald-100 p-3">
-              <svg class="h-6 w-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 3.26a2 2 0 001.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-              </svg>
-            </div>
-            <div>
-              <h3 class="font-semibold text-gray-900 mb-1">¿Prefieres escribir?</h3>
-              <p class="text-gray-600 text-sm mb-2">También puedes contactarnos por email para apoyo personalizado</p>
-              <a href="mailto:4tucode@gmail.com" class="text-emerald-600 font-medium hover:text-emerald-700">4tucode@gmail.com</a>
-            </div>
-          </div>
-                </div>
       </section>
 
       <!-- Profesionales Disponibles -->
       <section>
         <div class="text-center mb-12">
-          <h2 class="text-3xl font-bold text-gray-900 mb-4">👥 Profesionales Especializados</h2>
-          <p class="text-gray-600 max-w-2xl mx-auto">Conecta con psicólogos verificados. Muchos ofrecen primera consulta gratuita</p>
+          <h2 v-reveal class="reveal text-3xl font-bold text-gray-900 mb-4" style="--reveal-delay: 0ms">👥 Profesionales Especializados</h2>
+          <p v-reveal class="reveal text-gray-600 max-w-2xl mx-auto" style="--reveal-delay: 120ms">Conecta con psicólogos verificados. Muchos ofrecen primera consulta gratuita</p>
         </div>
 
         <!-- Sistema de Filtros -->
-        <div class="mb-8 bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
+        <div v-reveal class="reveal mb-8 bg-white rounded-2xl shadow-lg border border-gray-100 p-6" style="--reveal-delay: 0ms">
           <div class="flex items-center justify-between mb-4">
             <h3 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
               <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -218,7 +191,7 @@
         </div>
 
         <!-- Skeleton Loading mientras cargan los datos -->
-        <div v-if="loading" class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8">
+        <div v-if="loading" class="grid grid-cols-1 md:grid-cols-2 gap-8">
           <div v-for="n in 6" :key="'skeleton-' + n" class="bg-white rounded-3xl shadow-lg border border-gray-100 overflow-hidden animate-pulse">
             <div class="h-64 bg-gray-200"></div>
             <div class="p-6 space-y-4">
@@ -238,91 +211,67 @@
           </div>
         </div>
 
-        <!-- Lista de Profesionales con Animaciones Staggered -->
-        <div v-else class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8">
-          <div 
-            v-for="(professional, index) in filteredProfessionals" 
+        <!-- Lista de Profesionales con MediaCard (30/70) -->
+        <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div
+            v-for="(professional, index) in filteredProfessionals"
             :key="professional.id"
-            :style="{ animationDelay: `${index * 100}ms` }"
-            class="group bg-white rounded-3xl shadow-lg border border-gray-100 overflow-hidden hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 animate-fade-in-up"
+            v-reveal
+            class="reveal"
+            :style="{ '--reveal-delay': `${index * 120}ms` }"
           >
-            <div class="relative overflow-hidden">
-              <img 
-                :src="professional.image" 
-                :alt="professional.name" 
-                class="w-full h-64 object-cover transition-transform duration-500 group-hover:scale-110" 
-              />
-              <div class="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-              <div :class="['absolute top-4 right-4 text-white px-3 py-1 rounded-full text-sm font-medium transition-transform duration-300 group-hover:scale-110', getBadgeColorClass(professional.badgeColor)]">
+            <MediaCard
+              :imageSrc="professional.image"
+              :title="professional.name"
+              :subtitle="professional.title + ' · ' + professional.location"
+              buttonText="Reservar cita en Doctoralia"
+              :buttonHref="professional.officialUrl"
+            >
+            <div class="flex items-center gap-2 mb-2" v-if="professional.badge">
+              <span :class="['inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium text-white', getBadgeColorClass(professional.badgeColor)]">
                 {{ professional.badge }}
-              </div>
+              </span>
             </div>
-            
-            <div class="p-6">
-              <div class="mb-4">
-                <h3 class="text-xl font-bold text-gray-900 mb-1 group-hover:text-blue-600 transition-colors duration-300">
-                  {{ professional.name }}
-                </h3>
-                <p class="text-emerald-600 font-medium mb-2">{{ professional.title }}</p>
-                <div class="flex items-center gap-2 text-sm text-gray-600">
-                  <svg class="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" />
-                  </svg>
-                  {{ professional.location }}
-                </div>
-              </div>
-              
-              <div class="mb-4">
-                <h4 class="font-semibold text-gray-900 mb-2">Especialidades:</h4>
-                <div class="flex flex-wrap gap-1.5 xl:gap-2">
-                  <span 
-                    v-for="(specialty, idx) in professional.specialties" 
-                    :key="specialty"
-                    :class="['px-2.5 py-1 rounded-full text-xs xl:text-sm transition-all duration-300 hover:scale-105 cursor-default whitespace-nowrap', getSpecialtyColorClass(professional.specialtyColors[idx])]"
-                  >
-                    {{ specialty }}
-                  </span>
-                </div>
-              </div>
-
-              <div class="mb-4 space-y-2">
-                <div class="flex items-center gap-2 text-sm text-gray-600">
-                  <svg class="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd" />
-                  </svg>
-                  Disponible: {{ professional.schedule }}
-                </div>
-                <div v-if="professional.phone" class="flex items-center gap-2 text-sm text-gray-600">
-                  <svg class="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
-                  </svg>
-                  <a :href="'tel:' + professional.phone" class="hover:text-blue-600 transition-colors">
-                    {{ professional.phone }}
-                  </a>
-                </div>
-                <div v-if="professional.email" class="flex items-center gap-2 text-sm text-gray-600">
-                  <svg class="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M3 8l7.89 3.26a2 2 0 001.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                  </svg>
-                  <a :href="'mailto:' + professional.email" class="hover:text-blue-600 transition-colors">
-                    {{ professional.email }}
-                  </a>
-                </div>
-                <div class="flex items-center gap-2 text-sm font-medium text-green-600">
-                  <svg class="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4zM18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" />
-                  </svg>
-                  {{ professional.price }}
-                </div>
-              </div>
-
-              <button 
-                @click="handleButtonClick(professional.id)"
-                class="w-full inline-flex items-center justify-center rounded-full border px-4 py-2.5 text-sm font-medium text-purple-700 bg-white border-purple-200/60 shadow-sm hover:shadow transition-all duration-200 ease-out"
+            <div class="flex flex-wrap gap-1.5">
+              <span 
+                v-for="(specialty, idx) in professional.specialties" 
+                :key="specialty"
+                :class="['px-2.5 py-1 rounded-full text-xs transition-all duration-300 cursor-default whitespace-nowrap', getSpecialtyColorClass(professional.specialtyColors[idx])]"
               >
-                {{ professional.buttonText }}
-              </button>
+                {{ specialty }}
+              </span>
             </div>
+            <div class="mt-3 space-y-1 text-sm text-gray-600">
+              <div v-if="professional.schedule" class="flex items-center gap-2">
+                <svg class="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd" />
+                </svg>
+                Disponible: {{ professional.schedule }}
+              </div>
+              <div v-if="professional.phone" class="flex items-center gap-2">
+                <svg class="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
+                </svg>
+                <a :href="'tel:' + professional.phone" class="hover:text-blue-600 transition-colors">
+                  {{ professional.phone }}
+                </a>
+              </div>
+              <div v-if="professional.email" class="flex items-center gap-2">
+                <svg class="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M3 8l7.89 3.26a2 2 0 001.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+                <a :href="'mailto:' + professional.email" class="hover:text-blue-600 transition-colors">
+                  {{ professional.email }}
+                </a>
+              </div>
+              <div v-if="professional.price" class="flex items-center gap-2 text-green-600 font-medium">
+                <svg class="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4zM18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" />
+                </svg>
+                {{ professional.price }}
+              </div>
+            </div>
+            </MediaCard>
           </div>
         </div>
 
@@ -341,134 +290,111 @@
           </button>
         </div>
 
-        <!-- Más profesionales -->
-        <div class="text-center mt-12">
-          <button class="inline-flex items-center gap-2 rounded-full border px-6 py-3 text-sm font-medium text-gray-700 bg-white border-gray-200/60 shadow-sm hover:shadow transition-all duration-200 ease-out">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-            Ver Más Profesionales
-          </button>
-        </div>
+      
   </section>
     </div>
   </div>
 </template>
 
 <script>
+import MediaCard from '@/components/MediaCard.vue'
 export default {
   name: 'HelpView',
+  components: { MediaCard },
+  directives: {
+    reveal: {
+      mounted(el) {
+        el.classList.add('reveal');
+        const observer = new IntersectionObserver(
+          entries => {
+            entries.forEach(entry => {
+              if (entry.isIntersecting) {
+                entry.target.classList.add('is-visible');
+                observer.unobserve(entry.target);
+              }
+            });
+          },
+          { threshold: 0.15 }
+        );
+        observer.observe(el);
+      }
+    }
+  },
   data() {
     return {
       loading: true,
       professionals: [
         {
           id: 1,
-          name: 'Dra. María González',
-          title: 'Psicóloga Clínica Colegiada',
-          location: 'Valencia, España',
-          image: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
-          specialties: ['Ansiedad', 'Depresión', 'Estrés'],
-          specialtyColors: ['blue', 'purple', 'orange'],
-          price: 'Primera visita gratis',
-          priceRange: 'gratis',
-          modalidad: 'presencial',
-          schedule: 'Lun-Vie 9:00-18:00',
-          phone: '+34 963 123 456',
-          badge: '✨ Primera visita gratis',
-          badgeColor: 'green',
-          buttonText: 'Reservar Consulta Gratuita',
-          buttonGradient: 'from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800'
+          name: 'Susana Rodríguez Vargas',
+          title: 'Psicóloga Sanitaria',
+          location: 'Sevilla, España',
+          image: 'https://s3-eu-west-1.amazonaws.com/doctoralia.es/doctor/6a4b06/6a4b061d2ee7c03a7a3c47e9ba497da4_large.jpg',
+          specialties: ['Trastornos alimentarios', 'Trastornos emocionales', 'Terapia de pareja'],
+          specialtyColors: ['purple', 'blue', 'pink'],
+          price: 'Reserva inmediata en Doctoralia',
+          priceRange: '',
+          modalidad: 'hibrida',
+          schedule: 'Consulta online y presencial',
+          badge: '💬 Online y presencial',
+          badgeColor: 'blue',
+          buttonText: 'Reservar cita',
+          buttonGradient: 'from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800',
+          officialUrl: 'https://www.doctoralia.es/susana-rodriguez-vargas/psicologo/sevilla#address-id=216584&is-online-only=false&filters%5Bspecializations%5D%5B%5D=60'
         },
         {
           id: 2,
-          name: 'Dr. Carlos Ruiz',
-          title: 'Psicólogo Especialista en Adolescentes',
-          location: 'Madrid, España',
-          image: 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
-          specialties: ['Adolescentes', 'Autoestima', 'Bullying'],
-          specialtyColors: ['green', 'yellow', 'red'],
-          price: '50€/sesión',
-          priceRange: 'medio',
-          modalidad: 'online',
-          schedule: 'Lun-Sáb 10:00-20:00',
-          email: 'carlos.ruiz@psicologia.es',
-          badge: '💬 Consulta online',
-          badgeColor: 'blue',
-          buttonText: 'Agendar Cita Online',
-          buttonGradient: 'from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800'
+          name: 'Alejandro Paz Fernández',
+          title: 'Psicólogo',
+          location: 'Sevilla, España',
+          image: 'https://s3-eu-west-1.amazonaws.com/doctoralia.es/doctor/b46a06/b46a0697d7bc4a934c1e8c5490dbca9c_large.jpg',
+          specialties: ['Ansiedad', 'Depresión', 'Autoestima'],
+          specialtyColors: ['emerald', 'indigo', 'yellow'],
+          price: 'Reserva en Doctoralia',
+          priceRange: '',
+          modalidad: 'hibrida',
+          schedule: 'Consulta online y presencial',
+          badge: '⭐ Perfil destacado',
+          badgeColor: 'emerald',
+          buttonText: 'Reservar cita',
+          buttonGradient: 'from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800',
+          officialUrl: 'https://www.doctoralia.es/alejandro-paz-fernandez-2/psicologo/sevilla#address-id=301854&is-online-only=false&filters%5Bspecializations%5D%5B%5D=60'
         },
         {
           id: 3,
-          name: 'Dra. Ana López',
-          title: 'Psicóloga Especialista en Terapia Cognitiva',
-          location: 'Barcelona, España',
-          image: 'https://images.unsplash.com/photo-1594824475317-d79ffe302f5c?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
-          specialties: ['Terapia Cognitiva', 'Pánico', 'Mindfulness'],
-          specialtyColors: ['pink', 'indigo', 'teal'],
-          price: '80€/sesión',
-          priceRange: 'alto',
-          modalidad: 'presencial',
-          schedule: 'Mar-Vie 9:00-17:00',
-          phone: '+34 934 567 890',
-          badge: '🏠 Consulta presencial',
+          name: 'María del Mar Chaves Iglesias',
+          title: 'Psicóloga',
+          location: 'Sevilla, España',
+          image: 'https://pixel-p2.s3.eu-central-1.amazonaws.com/doctor/avatar/5c3b006a/5c3b006a-57a3-4ba1-b192-ed420a661d54_large.jpg',
+          specialties: ['Adultos', 'Ansiedad', 'Terapia individual'],
+          specialtyColors: ['pink', 'blue', 'purple'],
+          price: 'Reserva en Doctoralia',
+          priceRange: '',
+          modalidad: 'hibrida',
+          schedule: 'Consulta online y presencial',
+          badge: '💬 Online y presencial',
           badgeColor: 'purple',
-          buttonText: 'Solicitar Información',
-          buttonGradient: 'from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800'
+          buttonText: 'Reservar cita',
+          buttonGradient: 'from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800',
+          officialUrl: 'https://www.doctoralia.es/maria-del-mar-chaves-iglesias/psicologo/sevilla#address-id=294814&is-online-only=false&filters%5Bspecializations%5D%5B%5D=60'
         },
         {
           id: 4,
-          name: 'Dr. Javier Moreno',
-          title: 'Psicólogo Especialista en Trauma',
+          name: 'Juan Antonio Verdugo',
+          title: 'Psicólogo',
           location: 'Sevilla, España',
-          image: 'https://images.unsplash.com/photo-1582750433449-648ed127bb54?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
-          specialties: ['Trauma', 'EMDR', 'Estrés Postraumático'],
-          specialtyColors: ['red', 'purple', 'orange'],
-          price: '70€/sesión',
-          priceRange: 'alto',
+          image: 'https://s3-eu-west-1.amazonaws.com/doctoralia.es/doctor/e97657/e97657eb3308ca4f258164738a2f06cd_large.jpg',
+          specialties: ['Ansiedad', 'Terapia de pareja', 'Estrés'],
+          specialtyColors: ['indigo', 'emerald', 'orange'],
+          price: 'Reserva en Doctoralia',
+          priceRange: '',
           modalidad: 'hibrida',
-          schedule: 'Lun-Jue 16:00-21:00',
-          phone: '+34 954 123 789',
-          badge: '🔄 Online y Presencial',
+          schedule: 'Consulta online y presencial',
+          badge: '⭐ Perfil destacado',
           badgeColor: 'indigo',
-          buttonText: 'Reservar Cita',
-          buttonGradient: 'from-red-600 to-red-700 hover:from-red-700 hover:to-red-800'
-        },
-        {
-          id: 5,
-          name: 'Dra. Carmen Ruiz',
-          title: 'Psicóloga Infantil y de Familia',
-          location: 'Bilbao, España',
-          image: 'https://images.unsplash.com/photo-1551836022-deb4988cc6c0?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
-          specialties: ['Psicología Infantil', 'Terapia Familiar', 'TDAH'],
-          specialtyColors: ['blue', 'green', 'yellow'],
-          price: '60€/sesión',
-          priceRange: 'medio',
-          modalidad: 'presencial',
-          schedule: 'Mar-Sáb 9:00-15:00',
-          email: 'carmen.ruiz@infantil.es',
-          badge: '👶 Especialista Infantil',
-          badgeColor: 'pink',
-          buttonText: 'Consultar Disponibilidad',
-          buttonGradient: 'from-pink-600 to-pink-700 hover:from-pink-700 hover:to-pink-800'
-        },
-        {
-          id: 6,
-          name: 'Dr. Miguel Fernández',
-          title: 'Psicólogo Especialista en Adicciones',
-          location: 'Valencia, España',
-          image: 'https://images.unsplash.com/photo-1582750433449-648ed127bb54?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
-          specialties: ['Adicciones', 'Desintoxicación', 'Terapia Grupal'],
-          specialtyColors: ['orange', 'red', 'purple'],
-          price: 'Primera consulta gratis',
-          priceRange: 'gratis',
-          modalidad: 'online',
-          schedule: 'Lun-Vie 18:00-22:00',
-          phone: '+34 963 987 654',
-          badge: '🆓 Primera consulta gratis',
-          badgeColor: 'emerald',
-          buttonText: 'Reservar Consulta Gratuita',
-          buttonGradient: 'from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800'
+          buttonText: 'Reservar cita',
+          buttonGradient: 'from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800',
+          officialUrl: 'https://www.doctoralia.es/juan-antonio-verdugo/psicologo/sevilla#address-id=107664&is-online-only=false&filters%5Bgender%5D%5B%5D=male&filters%5Bspecializations%5D%5B%5D=60'
         }
       ],
       filters: {
@@ -564,6 +490,18 @@ export default {
 
 <style scoped>
 /* Animaciones personalizadas */
+.reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 700ms ease, transform 700ms ease;
+  transition-delay: var(--reveal-delay, 0ms);
+}
+
+.reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
 @keyframes fade-in-up {
   from {
     opacity: 0;

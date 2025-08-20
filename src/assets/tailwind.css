@@ -3,3 +3,19 @@
 @import "tailwindcss/utilities";
 
 
+@layer base {
+html, body {
+  @apply font-urbanist overflow-x-hidden;
+}
+
+button, input, textarea, select {
+  @apply font-urbanist;
+}
+
+h1 { @apply font-urbanist font-black; }
+h2 { @apply font-urbanist font-extrabold; }
+h3 { @apply font-urbanist font-bold; }
+h4 { @apply font-urbanist font-semibold; }
+h5 { @apply font-urbanist font-semibold; }
+h6 { @apply font-urbanist font-medium; }
+}

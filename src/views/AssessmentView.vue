@@ -1,10 +1,29 @@
 <template>
-  <section
-    class="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 py-8 outline-none"
-    @keyup.left.prevent="goPrev"
-    @keyup.right.prevent="goNext"
-    tabindex="0"
-  >
+  <div class="relative isolate min-h-screen bg-gradient-to-b from-[#ecf2ff] via-[#FFE5D6] to-[#ffe6f2]">
+    <!-- Overlays de baño cálido y anti-banding -->
+    <div aria-hidden="true" class="pointer-events-none absolute inset-0 overflow-hidden">
+      <!-- Claro: blush/almendra (radiales grandes en esquinas) -->
+      <div class="absolute -left-24 -top-24 w-[120vh] h-[120vh] opacity-60 dark:hidden" style="background: radial-gradient(60vh 60vh at top left, rgba(255,241,236,0.16), rgba(255,229,214,0.08) 45%, rgba(255,229,214,0) 70%);"></div>
+      <div class="absolute -right-24 -bottom-24 w-[120vh] h-[120vh] opacity-60 dark:hidden" style="background: radial-gradient(60vh 60vh at bottom right, rgba(255,229,214,0.14), rgba(255,241,236,0.06) 45%, rgba(255,241,236,0) 70%);"></div>
+      <!-- Oscuro: sepia (radiales grandes en esquinas) -->
+      <div class="absolute -left-24 -top-24 hidden dark:block w-[120vh] h-[120vh] opacity-70" style="background: radial-gradient(60vh 60vh at top left, rgba(26,20,17,0.20), rgba(23,18,15,0.10) 45%, rgba(23,18,15,0) 70%);"></div>
+      <div class="absolute -right-24 -bottom-24 hidden dark:block w-[120vh] h-[120vh] opacity-70" style="background: radial-gradient(60vh 60vh at bottom right, rgba(23,18,15,0.18), rgba(26,20,17,0.08) 45%, rgba(26,20,17,0) 70%);"></div>
+      <!-- Anti-banding sutil -->
+      <div class="absolute inset-0 dark:hidden" style="background: radial-gradient(120vh 120vh at 50% 40%, rgba(255,255,255,0.06), rgba(255,255,255,0) 60%);"></div>
+      <div class="absolute inset-0 hidden dark:block" style="background: radial-gradient(120vh 120vh at 50% 40%, rgba(0,0,0,0.08), rgba(0,0,0,0) 60%);"></div>
+
+      <!-- Ruido sutil para textura (muy bajo, evita banding sin distraer) -->
+      <div
+        class="pointer-events-none absolute inset-0 opacity-5 mix-blend-multiply"
+        style="background-image: url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2264%22 height=%2264%22><filter id=%22n%22><feTurbulence type=%22fractalNoise%22 baseFrequency=%220.8%22 numOctaves=%222%22 stitchTiles=%22stitch%22/></filter><rect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23n)%22/></svg>'); background-size: 64px 64px;"
+      ></div>
+    </div>
+    <section
+      class="assessment mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 py-8 outline-none"
+      @keyup.left.prevent="goPrev"
+      @keyup.right.prevent="goNext"
+      tabindex="0"
+    >
     <!-- Encabezado -->
     <header class="flex items-start justify-between gap-4">
       <div>
@@ -50,9 +69,14 @@
         class="mt-6 rounded-xl border border-gray-200 bg-white/80 backdrop-blur p-5 sm:p-6 shadow-sm"
         :key="questions[currentIndex]?.id"
       >
-        <h2 class="text-xl font-semibold text-gray-900">
+        <h2 class="text-xl font-black text-gray-900 font-urbanist">
           {{ questions[currentIndex]?.text }}
         </h2>
+
+        <!-- Microcopy de ayuda (debajo de la pregunta) -->
+        <p class="mt-2 text-sm text-gray-600">
+          Piensa en cómo te has sentido en las últimas 2 semanas. No hace falta ser exacto: elige la opción que mejor se acerque a tu caso.
+        </p>
 
         <!-- Opciones -->
         <div class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 stagger" role="radiogroup">
@@ -74,9 +98,21 @@
                 ? 'border-transparent ring-2 ring-purple-500 bg-purple-50 text-purple-900 shadow'
                 : 'border-gray-300 hover:border-purple-300 hover:bg-purple-50/40'"
             >
-              {{ c.label }}
+              <span class="block text-base">{{ c.label }}</span>
+              <span v-if="c.rangeHint" class="mt-1 block text-xs text-gray-500">(~{{ c.rangeHint }})</span>
             </span>
           </label>
+        </div>
+
+        <!-- Botón opcional para omitir respuesta -->
+        <div v-if="allowSkip" class="mt-2">
+          <button
+            type="button"
+            class="text-sm text-gray-600 underline underline-offset-2 hover:text-gray-800"
+            @click="skipCurrent"
+          >
+            Prefiero no responder
+          </button>
         </div>
 
         <!-- Aviso de apoyo -->
@@ -103,7 +139,8 @@
         {{ isLast ? 'Guardar y ver resumen' : 'Siguiente' }}
       </button>
     </footer>
-  </section>
+    </section>
+  </div>
 </template>
 
 <script>
@@ -120,14 +157,15 @@ export default {
       totalQuestions: 0,
       questions: [],
       choices: [
-        { value: 0, label: 'Nunca' },
-        { value: 1, label: 'Varios días' },
-        { value: 2, label: 'Más de la mitad' },
-        { value: 3, label: 'Casi todos los días' }
+        { value: 0, label: 'No, en ningún momento', rangeHint: '0 días' },
+        { value: 1, label: 'Sí, en algunos días', rangeHint: '1–7 días' },
+        { value: 2, label: 'Sí, en más de la mitad de los días', rangeHint: '8–11 días' },
+        { value: 3, label: 'Sí, casi cada día', rangeHint: '12–14 días' }
       ],
       currentIndex: 0,
       answers: [],
-      scalePeriod: 'últimas 2 semanas'
+      scalePeriod: 'últimas 2 semanas',
+      allowSkip: false
     }
   },
   computed: {
@@ -164,6 +202,7 @@ export default {
         this.totalQuestions = this.questions.length
         this.scalePeriod = cfg?.scale?.period || this.scalePeriod
         if (cfg?.choices?.length === 4) this.choices = cfg.choices
+        this.allowSkip = !!cfg?.allowSkip
       } else {
         // Fallback local por si aún no has creado el doc
         this.questions = [
@@ -210,7 +249,7 @@ export default {
       this.$nextTick(() => this.focusSection())
     },
     goNext() {
-      if (this.answers[this.currentIndex] === null) {
+      if (this.answers[this.currentIndex] === null && !this.allowSkip) {
         this.$toast?.info?.('Selecciona una opción para continuar')
         return
       }
@@ -219,9 +258,13 @@ export default {
         this.$nextTick(() => this.focusSection())
       }
     },
+    skipCurrent() {
+      this.$set ? this.$set(this.answers, this.currentIndex, null) : (this.answers[this.currentIndex] = null)
+      this.goNext()
+    },
     handleNextOrSubmit() {
       if (!this.isLast) return this.goNext()
-      if (this.answers.includes(null)) {
+      if (this.answers.includes(null) && !this.allowSkip) {
         this.$toast?.info?.('Responde todas las preguntas')
         return
       }
@@ -229,9 +272,13 @@ export default {
     },
     calcDomainScores() {
       // Suma por dominios: ánimo(1+2), ansiedad(3+4), sueño/energía(5+6), impacto(7)
+      // Si una respuesta es null (omitida), se excluye del cálculo
       const map = {}
       this.questions.forEach((q, i) => {
-        const v = Number(this.answers[i] || 0)
+        const raw = this.answers[i]
+        if (raw === null || raw === undefined) return
+        const v = Number(raw)
+        if (Number.isNaN(v)) return
         map[q.domain] = (map[q.domain] || 0) + v
       })
       const domainScores = {
@@ -256,13 +303,13 @@ export default {
           usuarioId: user.uid,
           autoevaluacionSlug: slug,
           nombre: this.formName,
-          respuestas: this.questions.map((q, i) => ({ id: q.id, dominio: q.domain, valor: Number(this.answers[i]) })),
+          respuestas: this.questions.map((q, i) => ({ id: q.id, dominio: q.domain, valor: this.answers[i] === null ? null : Number(this.answers[i]) })),
           puntuacion: total,
           creadoEn: serverTimestamp(),
           // campos adicionales por compatibilidad
           domainScores,
           formId: this.formId,
-          answers: this.questions.map((q, i) => ({ id: q.id, domain: q.domain, value: Number(this.answers[i]) })),
+          answers: this.questions.map((q, i) => ({ id: q.id, domain: q.domain, value: this.answers[i] === null ? null : Number(this.answers[i]) })),
           total
         })
         // Navega a resumen

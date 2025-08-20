@@ -12,12 +12,21 @@
 
         <!-- Center: Links desktop -->
         <div class="hidden md:flex items-center gap-6">
-          <router-link class="text-gray-700 hover:text-gray-900" :class="menuItemClass" :to="{ name: 'home' }">Inicio</router-link>
-          <router-link class="text-gray-700 hover:text-gray-900" :class="menuItemClass" :to="{ name: 'assessment', params: { slug: defaultSlug } }">Autoevaluación</router-link>
-          <router-link class="text-gray-700 hover:text-gray-900" :class="menuItemClass" :to="{ name: 'help' }">Ayuda</router-link>
-          <router-link class="text-gray-700 hover:text-gray-900" :class="menuItemClass" :to="{ name: 'resources' }">Recursos</router-link>
-          <router-link class="text-gray-700 hover:text-gray-900" :class="menuItemClass" :to="{ name: 'about' }">Sobre</router-link>
-          <router-link class="text-gray-700 hover:text-gray-900" :class="menuItemClass" :to="{ name: 'contact' }">Contacto</router-link>
+          <router-link class="text-gray-700" :class="menuItemClass" :to="{ name: 'home' }">
+            <span>Inicio</span>
+          </router-link>
+          <router-link class="text-gray-700" :class="menuItemClass" :to="{ name: 'assessment', params: { slug: defaultSlug } }">
+            <span>Autoevaluación</span>
+          </router-link>
+          <router-link class="text-gray-700" :class="menuItemClass" :to="{ name: 'resources' }">
+            <span>Recursos</span>
+          </router-link>
+          <router-link class="text-gray-700" :class="menuItemClass" :to="{ name: 'contact' }">
+            <span>Contacto</span>
+          </router-link>
+          <router-link class="text-gray-700" :class="menuItemClass" :to="{ name: 'help' }">
+            <span>Ayuda</span>
+          </router-link>
         </div>
 
         <!-- Right: Auth -->
@@ -61,9 +70,8 @@
       <div class="space-y-1 px-4 py-3">
         <router-link class="block rounded px-3 py-2 text-gray-700 hover:bg-gray-100" :class="menuItemClass" :to="{ name: 'home' }" @click="open=false">Inicio</router-link>
         <router-link class="block rounded px-3 py-2 text-gray-700 hover:bg-gray-100" :class="menuItemClass" :to="{ name: 'assessment', params: { slug: defaultSlug } }" @click="open=false">Autoevaluación</router-link>
-        <router-link class="block rounded px-3 py-2 text-gray-700 hover:bg-gray-100" :class="menuItemClass" :to="{ name: 'help' }" @click="open=false">Ayuda</router-link>
         <router-link class="block rounded px-3 py-2 text-gray-700 hover:bg-gray-100" :class="menuItemClass" :to="{ name: 'resources' }" @click="open=false">Recursos</router-link>
-        <router-link class="block rounded px-3 py-2 text-gray-700 hover:bg-gray-100" :class="menuItemClass" :to="{ name: 'about' }" @click="open=false">Sobre</router-link>
+        <router-link class="block rounded px-3 py-2 text-gray-700 hover:bg-gray-100" :class="menuItemClass" :to="{ name: 'help' }" @click="open=false">Ayuda</router-link>
         <router-link class="block rounded px-3 py-2 text-gray-700 hover:bg-gray-100" :class="menuItemClass" :to="{ name: 'contact' }" @click="open=false">Contacto</router-link>
 
         <template v-if="$store.getters.isAuth">
@@ -106,7 +114,7 @@ export default {
   },
   computed: {
     logo() { return logo },
-    menuItemClass() { return 'animate-menu-in' },
+    menuItemClass() { return 'animate-menu-in nav-link text-gray-700 transition-colors duration-300 ease-out router-link' },
     resultClasses() {
       const s = Number(this.latestScore || 0)
       if (s <= 7) return 'text-emerald-700 border-emerald-200/60'
@@ -156,6 +164,39 @@ export default {
 .animate-menu-in {
   animation: menuIn 400ms ease-out both;
 }
+.nav-link { position: relative; }
+
+/* Color activo (zen) */
+/* Estado activo: morado zen con degradado en el texto */
+.router-link-active.router-link,
+.router-link-exact-active.router-link {
+  background-image: linear-gradient(90deg, #5b21b6, #7c3aed, #a78bfa);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  font-weight: 700;
+}
+
+/* Hover cálido: degradado ámbar en texto */
+.nav-link:hover {
+  background-image: linear-gradient(90deg, #92400e, #f59e0b, #fde68a);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Focus accesible: morado con degradado y negrita + anillo sutil */
+.nav-link:focus-visible {
+  outline: none;
+  font-weight: 700;
+  background-image: linear-gradient(90deg, #4c1d95, #7c3aed, #c4b5fd);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15);
+  border-radius: 9999px;
+}
+
 
 /* stagger básico para los enlaces del menú en desktop */
 .md\\:flex > .animate-menu-in:nth-child(1) { animation-delay: 40ms; }

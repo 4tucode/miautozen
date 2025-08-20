@@ -108,9 +108,9 @@ export default {
 </script>
 
 <template>
-  <section class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+  <section class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-8 overflow-x-hidden">
     <!-- Hero full-bleed -->
-    <div class="-mx-4 sm:-mx-6 lg:-mx-8">
+    <div class="-mx-4 sm:-mx-6 lg:-mx-8 overflow-hidden">
       <div class="relative overflow-hidden h-48 sm:h-60 lg:h-72">
         <img src="https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?q=80&w=1600&auto=format&fit=crop" alt="Cabecera Recursos" class="h-full w-full object-cover" />
         <div class="absolute inset-0 bg-gradient-to-r from-black/40 via-black/30 to-transparent"></div>
@@ -157,7 +157,7 @@ export default {
       <!-- Listado de tarjetas -->
       <div>
         <div class="grid gap-6 [grid-template-columns:repeat(auto-fill,minmax(280px,1fr))]">
-          <article v-for="r in listadoFiltrado" :key="r.id" class="group relative rounded-2xl border border-gray-200 bg-white/90 p-5 shadow-sm ring-1 ring-transparent hover:shadow-md hover:ring-purple-200 transition-all">
+          <article v-for="r in listadoFiltrado" :key="r.id" class="group relative rounded-2xl border  p-5 shadow-sm ring-1 ring-transparent hover:shadow-md hover:ring-purple-200 transition-all">
             <!-- Decoración superior -->
             <div class="absolute -top-10 -right-10 h-24 w-24 rounded-full bg-gradient-to-tr opacity-20 blur-2xl group-hover:opacity-30 group-hover:scale-105 transition-transform"
                  :class="iconoCategoria(r.categoria).color.replace('text','from').replace('bg','to')"></div>
