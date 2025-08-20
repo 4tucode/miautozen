@@ -1,0 +1,14 @@
+User-agent: *
+Allow: /
+
+# Disallow sensitive or non-SEO pages
+Disallow: /login
+Disallow: /register
+Disallow: /assessment/
+Disallow: /results
+Disallow: /assessment/summary
+Disallow: /assessment/domain/
+Disallow: /assessment/domain/*/summary
+
+Sitemap: /sitemap.xml
+
