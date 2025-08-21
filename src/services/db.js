@@ -36,6 +36,15 @@ export async function obtenerResultadoPorId(id) {
   return { id: snap.id, ...snap.data() };
 }
 
+// Actualiza parcialmente un resultado por id (merge)
+export async function actualizarResultadoPorId(id, data) {
+  if (!id) throw new Error('resultado id requerido');
+  const ref = doc(db, 'resultados', id);
+  await setDoc(ref, data, { merge: true });
+  const snap = await getDoc(ref);
+  return { id: snap.id, ...snap.data() };
+}
+
 export async function guardarMensajeContacto({ nombre, email, motivo, mensaje }) {
   return addDoc(collection(db, 'contacto'), {
     nombre,
@@ -139,8 +148,13 @@ export async function setFavorito({ usuarioId, recurso }) {
   return { id: snap.id, ...snap.data() };
 }
 
-export async function removeFavorito({ usuarioId, recursoId }) {
-  if (!usuarioId || !recursoId) throw new Error('usuarioId y recursoId requeridos');
+export async function removeFavorito({ id, usuarioId, recursoId }) {
+  // Permite borrar por id directo o por (usuarioId + recursoId)
+  if (id) {
+    await deleteDoc(doc(db, 'favoritos', id));
+    return;
+  }
+  if (!usuarioId || !recursoId) throw new Error('id o (usuarioId y recursoId) requeridos');
   const favId = `${usuarioId}_${recursoId}`;
   await deleteDoc(doc(db, 'favoritos', favId));
 }

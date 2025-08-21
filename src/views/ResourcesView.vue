@@ -108,7 +108,7 @@ export default {
 </script>
 
 <template>
-  <section class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-8 overflow-x-hidden">
+  <section class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-8 overflow-x-hidden bg-gradient-to-b from-[#f9aaff] via-[#fcedd0] to-[#ffe6f2]">
     <!-- Hero full-bleed -->
     <div class="-mx-4 sm:-mx-6 lg:-mx-8 overflow-hidden">
       <div class="relative overflow-hidden h-48 sm:h-60 lg:h-72">
@@ -157,7 +157,7 @@ export default {
       <!-- Listado de tarjetas -->
       <div>
         <div class="grid gap-6 [grid-template-columns:repeat(auto-fill,minmax(280px,1fr))]">
-          <article v-for="r in listadoFiltrado" :key="r.id" class="group relative rounded-2xl border  p-5 shadow-sm ring-1 ring-transparent hover:shadow-md hover:ring-purple-200 transition-all">
+          <article v-for="r in listadoFiltrado" :key="r.id" class="group relative rounded-2xl border bg-white  p-5 shadow-sm ring-1 ring-transparent hover:shadow-md hover:ring-purple-200 transition-all">
             <!-- Decoración superior -->
             <div class="absolute -top-10 -right-10 h-24 w-24 rounded-full bg-gradient-to-tr opacity-20 blur-2xl group-hover:opacity-30 group-hover:scale-105 transition-transform"
                  :class="iconoCategoria(r.categoria).color.replace('text','from').replace('bg','to')"></div>
