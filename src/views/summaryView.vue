@@ -27,6 +27,8 @@ export default {
       ],
       activeSection: 'intro',
       interpretObserver: null
+      , explainOpen: false
+      , explainDomain: null
     }
   },
   computed: {
@@ -64,30 +66,56 @@ export default {
         impacto: Number(ds?.impacto || 0)
       }
       const positiveOrientation = new Set(['animo', 'bienestar_fisico']) // 100% es bueno
-      ;['animo', 'ansiedad', 'bienestar_fisico', 'impacto'].forEach(key => {
-        const max = maxByKey[key]
-        const raw = Math.max(0, Math.min(max, Number(values[key] || 0)))
-        const severityPercent = Math.round((raw / max) * 100) // 100% = más síntomas/impacto
-        const isPositive = positiveOrientation.has(key)
-        const displayPercent = isPositive ? (100 - severityPercent) : severityPercent
-        const wellbeingPercent = isPositive ? displayPercent : (100 - displayPercent)
-        out.push({
-          key,
-          label: labelByKey[key],
-          value: raw,
-          max,
-          percent: displayPercent, // lo que mostramos al usuario
-          wellbeingPercent,        // para colores/emoji (alto = verde)
-          orientation: isPositive ? 'positive' : 'negative'
+        ;['animo', 'ansiedad', 'bienestar_fisico', 'impacto'].forEach(key => {
+          const max = maxByKey[key]
+          const raw = Math.max(0, Math.min(max, Number(values[key] || 0)))
+          const severityPercent = Math.round((raw / max) * 100) // 100% = más síntomas/impacto
+          const isPositive = positiveOrientation.has(key)
+          const displayPercent = isPositive ? (100 - severityPercent) : severityPercent
+          const wellbeingPercent = isPositive ? displayPercent : (100 - displayPercent)
+          out.push({
+            key,
+            label: labelByKey[key],
+            value: raw,
+            max,
+            // Mostrar: para 'impacto' y 'ansiedad' enseñamos señales directas (0% = buen estado, 100% = peor)
+            percent: ((key === 'impacto' || key === 'ansiedad') ? severityPercent : wellbeingPercent),
+            wellbeingPercent,        // para colores/emoji (alto = verde)
+            baselineWellbeingPercent: wellbeingPercent,
+            orientation: isPositive ? 'positive' : 'negative'
+          })
         })
+      // Overrides desde formularios de dominio DE ESTE RESULTADO (sin usar antiguos)
+      const overrides = r?.overrides || {}
+      const withOverrides = out.map(c => {
+        const override = overrides?.[c.key]
+        if (override && typeof override.wellbeingPercent === 'number') {
+          const p = Number(override.wellbeingPercent)
+          const finalWellbeing = p
+          const displayForChip = ((c.key === 'impacto' || c.key === 'ansiedad') ? (100 - p) : p)
+          return { ...c, percent: displayForChip, wellbeingPercent: p, deepWellbeingPercent: p, deepTotal: Number(override.total || 0), deepResultId: override.resultId || null, finalWellbeingPercent: finalWellbeing, overriddenByDeep: true, overrideSource: 'parent' }
+        }
+        return c
       })
-      return out
+      const withFinal = withOverrides.map(c => (
+        typeof c.finalWellbeingPercent === 'number'
+          ? c
+          : { ...c, finalWellbeingPercent: c.baselineWellbeingPercent }
+      ))
+      return withFinal.sort((a, b) => Number(a.wellbeingPercent || 0) - Number(b.wellbeingPercent || 0))
     },
     globalWellbeingPercent() {
       const items = this.catBreakdown
       if (!items.length) return 0
       const sum = items.reduce((acc, c) => acc + Number(c.wellbeingPercent || 0), 0)
       return Math.round(sum / items.length)
+    },
+    generalTotal() {
+      const r = this.resultado || {}
+      const raw = Number(r?.puntuacion || r?.total || 0)
+      // El formulario general tiene máximo 21 puntos (7 ítems x 0–3)
+      const clamped = Math.max(0, Math.min(21, raw))
+      return clamped
     }
   },
   methods: {
@@ -121,10 +149,10 @@ export default {
       return require('@/assets/int1 (1).png')
     },
     domainBgClass(key) {
-      if (key === 'animo') return 'from-amber-200/70 to-rose-200/60 ring-amber-200'
-      if (key === 'ansiedad') return 'from-rose-200/70 to-purple-200/60 ring-rose-200'
-      if (key === 'bienestar_fisico') return 'from-emerald-200/70 to-teal-200/60 ring-emerald-200'
-      return 'from-purple-200/70 to-amber-200/60 ring-purple-200'
+      if (key === 'animo') return 'from-amber-200/70 to-rose-200/60'
+      if (key === 'ansiedad') return 'from-rose-200/70 to-purple-200/60'
+      if (key === 'bienestar_fisico') return 'from-emerald-200/70 to-teal-200/60'
+      return 'from-purple-200/70 to-amber-200/60'
     },
     domainImage(key) {
       try {
@@ -240,11 +268,7 @@ export default {
     },
     domainActionTarget(c) {
       if (!this.isDomainRed(c)) return null
-      const fromResultId = this.resultado?.id || this.$route?.query?.resultId || ''
-      const deep = this.deepByDomain[c?.key]
-      if (deep) {
-        return { name: 'domain-summary', params: { domain: c?.key }, query: { resultId: deep.id, ...(fromResultId ? { fromResultId } : {}) } }
-      }
+      const fromResultId = this.resultado?.id || ''
       return { name: 'domain-assessment', params: { domain: c?.key }, query: (fromResultId ? { fromResultId } : {}) }
     },
     scrollToSection(id) {
@@ -258,6 +282,115 @@ export default {
         // no-op
       }
     }
+    , async loadScript(src) {
+      return new Promise((resolve, reject) => {
+        try {
+          const existing = document.querySelector(`script[src="${src}"]`)
+          if (existing) { resolve(true); return }
+          const s = document.createElement('script')
+          s.src = src
+          s.async = true
+          s.onload = () => resolve(true)
+          s.onerror = () => reject(new Error('No se pudo cargar: ' + src))
+          document.head.appendChild(s)
+        } catch (e) { reject(e) }
+      })
+    }
+    , async ensurePdfLibs() {
+      if (!window.html2canvas) {
+        await this.loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js')
+      }
+      if (!window.jspdf?.jsPDF) {
+        await this.loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js')
+      }
+    }
+    , async elementToImage(el) {
+      const node = (typeof el === 'string') ? this.$el?.querySelector?.(el) : el
+      if (!node) return null
+      // Forzamos layout estable y fondo blanco
+      const prev = node.style.backgroundColor
+      node.style.backgroundColor = '#ffffff'
+      const canvas = await window.html2canvas(node, {
+        scale: 2,
+        backgroundColor: '#ffffff',
+        useCORS: true,
+        windowWidth: node.scrollWidth || document.documentElement.scrollWidth,
+        windowHeight: node.scrollHeight || document.documentElement.scrollHeight,
+        scrollX: 0,
+        scrollY: -window.scrollY
+      })
+      node.style.backgroundColor = prev
+      return canvas.toDataURL('image/jpeg', 0.95)
+    }
+    , async downloadPdf() {
+      try {
+        await this.ensurePdfLibs()
+        const { jsPDF } = window.jspdf || {}
+        if (!jsPDF || !window.html2canvas) {
+          window.print && window.print();
+          return
+        }
+        const pdf = new jsPDF('p', 'mm', 'a4')
+        const pageWidth = pdf.internal.pageSize.getWidth()
+        const pageHeight = pdf.internal.pageSize.getHeight()
+
+        const addSection = async (selector, marginTopMm = 8) => {
+          const imgData = await this.elementToImage(selector)
+          if (!imgData) return
+          const img = new Image()
+          await new Promise((res) => { img.onload = res; img.src = imgData })
+          const pxToMm = (px) => px * 0.2645833333
+          const imgWmm = pageWidth - 16
+          const scale = imgWmm / pxToMm(img.width)
+          const imgHmm = pxToMm(img.height) * scale
+          let y = marginTopMm
+          // Si se desborda, nueva página
+          if (y + imgHmm > pageHeight - 10) { pdf.addPage(); y = marginTopMm }
+          pdf.addImage(imgData, 'JPEG', 8, y, imgWmm, imgHmm)
+        }
+
+        // Captura del contenedor principal en trozos para mayor fidelidad
+        const container = this.$el?.querySelector?.('#summary-pdf')
+        if (container) {
+          const totalHeight = container.scrollHeight
+          let offsetY = 0
+          while (offsetY < totalHeight) {
+            const slice = await this.elementToImage(container)
+            pdf.addImage(slice, 'JPEG', 8, 8, pageWidth - 16, (pageWidth - 16) * (container.scrollHeight / container.scrollWidth))
+            offsetY += totalHeight
+            if (offsetY < totalHeight) pdf.addPage()
+          }
+        } else {
+          // Fallback a secciones
+          await addSection('.relative:has(> h1)')
+          await addSection('#dominios')
+          await addSection('#nota')
+        }
+
+        // Fallback: si no se encontró nada, exporta todo el contenedor
+        if (pdf.getNumberOfPages() === 1 && pdf.internal.getCurrentPageInfo().pageNumber === 1) {
+          const all = await this.elementToImage('section.mx-auto.max-w-7xl')
+          if (all) {
+            pdf.addImage(all, 'JPEG', 8, 8, pageWidth - 16, (pageWidth - 16) * 0.5625)
+          }
+        }
+
+        const ts = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')
+        pdf.save(`MiAutoZen-Resumen-${ts}.pdf`)
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.error(e)
+        window.print && window.print()
+      }
+    }
+    , openExplain(c) {
+      this.explainDomain = c
+      this.explainOpen = true
+    }
+    , closeExplain() {
+      this.explainOpen = false
+      this.explainDomain = null
+    }
   },
   async created() {
     try {
@@ -266,26 +399,20 @@ export default {
         this.$router.push({ name: 'login', query: { next: this.$route.fullPath } })
         return
       }
+      // Priorizar explícitamente el resultId (por ejemplo, al volver desde "Saber más")
       const resultId = this.$route.query.resultId
       if (resultId) {
-        // Cargar ese resultado concreto
         const fetched = await obtenerResultadoPorId(resultId)
-        // seguridad básica: asegurar que pertenece al usuario actual
         this.resultado = fetched?.usuarioId === uid ? fetched : null
-      } else {
-        const todos = await listarResultadosPorUsuario(uid)
-        const formFilter = this.$route.query.form
-        const elegido = formFilter
-          ? todos.find(r => r.formId === formFilter) || todos[0]
-          : todos[0]
-        this.resultado = elegido || null
       }
-      // Cargar resultados de dominio del usuario
-      const todosUsuario = await listarResultadosPorUsuario(uid)
-      const deep = todosUsuario.filter(r => String(r.formId || '').startsWith('domain_'))
-      const map = {}
-      deep.forEach(d => { if (d.domain && !map[d.domain]) map[d.domain] = d })
-      this.deepByDomain = map
+      // Si no hay resultId válido, tomar el más reciente de formularios generales (excluir domain_)
+      if (!this.resultado) {
+        const todos = await listarResultadosPorUsuario(uid)
+        const generales = (todos || []).filter(r => !String(r.formId || '').startsWith('domain_'))
+        this.resultado = generales?.[0] || null
+      }
+      // No considerar resultados profundos antiguos en este resumen
+      this.deepByDomain = {}
       if (!this.resultado) this.error = 'No se encontró el resultado recién guardado.'
     } catch (e) {
       this.error = 'No se pudo cargar el resumen.'
@@ -295,7 +422,7 @@ export default {
       this.cargando = false
     }
   }
-  ,mounted() {
+  , mounted() {
     // escuchar scroll del carrusel de dominios
     try {
       const el = this.$el?.querySelector?.('.domains-strip')
@@ -338,163 +465,77 @@ export default {
 </script>
 
 <template>
-  <section class="mx-auto max-w-7xl">
+  <section id="summary-pdf" class="mx-auto max-w-7xl">
     <!-- Hero visual -->
     <div class="relative overflow-hidden  bg-gradient-to-br from-amber-50 via-rose-50 to-emerald-50 shadow-sm">
       <img src="@/assets/fondo.jpg" alt="" class="absolute inset-0 h-full w-full object-cover opacity-20" />
       <div class="absolute inset-0 bg-gradient-to-t from-white/70 via-white/40 to-transparent"></div>
       <div class="relative px-6 sm:px-10 py-10 sm:py-14">
         <h1 class="text-4xl md:text-6xl font-black tracking-tight">
-          <span class="bg-gradient-to-r from-amber-600 via-rose-500 to-emerald-600 bg-clip-text text-transparent">Tu resumen de bienestar</span>
+          <span class="bg-gradient-to-r from-amber-600 via-rose-500 to-emerald-600 bg-clip-text text-transparent">Tu
+            resumen de bienestar</span>
         </h1>
-        <p class="mt-3 max-w-2xl text-base md:text-lg text-gray-700">Una vista clara y serena de cómo estás. Usa esta guía para cuidarte con amabilidad.</p>
+        <p class="mt-3 max-w-2xl text-base md:text-lg text-gray-700">Una vista clara y serena de cómo estás. Usa esta
+          guía para cuidarte con amabilidad.</p>
         <div class="mt-6 grid gap-4 sm:grid-cols-3">
           <div class="rounded-2xl bg-white/80 backdrop-blur ring-1 ring-amber-200 p-5">
-            <p class="text-xs font-medium text-amber-700">Bienestar global</p>
+            <p class="text-xs font-medium text-amber-700">Tu bienestar está al</p>
             <p class="mt-1 text-3xl md:text-4xl font-extrabold text-amber-800">{{ globalWellbeingPercent }}%</p>
-              </div>
+          </div>
           <div class="rounded-2xl bg-white/80 backdrop-blur ring-1 ring-rose-200 p-5">
-            <p class="text-xs font-medium text-rose-700">Puntuación total</p>
-            <p class="mt-1 text-3xl md:text-4xl font-extrabold text-rose-800">{{ resultado?.puntuacion }} pts</p>
+            <p class="text-xs font-medium text-rose-700">Puntuación</p>
+            <p class="mt-1 text-3xl md:text-4xl font-extrabold text-rose-800">{{ generalTotal }} pts</p>
           </div>
           <div class="rounded-2xl bg-white/80 backdrop-blur ring-1 ring-emerald-200 p-5">
             <p class="text-xs font-medium text-emerald-700">Fecha</p>
-            <p class="mt-1 text-lg md:text-xl font-semibold text-emerald-800">{{ resultado?.creadoEn?.toDate ? new Date(resultado.creadoEn.toDate()).toLocaleString('es-ES') : '—' }}</p>
+            <p class="mt-1 text-lg md:text-xl font-semibold text-emerald-800">{{ resultado?.creadoEn?.toDate ? new
+              Date(resultado.creadoEn.toDate()).toLocaleString('es-ES') : '—' }}</p>
           </div>
         </div>
         <div class="mt-6">
-          <router-link :to="{ name: 'results' }" class="inline-flex items-center rounded-full bg-gradient-to-r from-amber-500 to-rose-500 px-6 py-2.5 text-sm font-semibold text-white shadow hover:opacity-95">Ver todos mis resultados</router-link>
+          <div class="flex items-center gap-3 flex-wrap">
+            <router-link :to="{ name: 'results' }"
+              class="inline-flex items-center rounded-full bg-gradient-to-r from-amber-500 to-rose-500 px-6 py-2.5 text-sm font-semibold text-white shadow hover:opacity-95">Ver
+              todos mis resultados</router-link>
+            <button type="button" @click="downloadPdf"
+              class="inline-flex items-center rounded-full bg-white px-6 py-2.5 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-200 hover:bg-gray-50 shadow">
+              Descargar informe (PDF)
+            </button>
+          </div>
         </div>
       </div>
-              </div>
-
-    <!-- Estados de carga/errores -->
-    <p v-if="cargando" class="mt-8 h-40 w-full animate-pulse rounded-2xl bg-gray-200/70"></p>
-    <p v-else-if="error" class="mt-8 text-sm font-medium text-red-600">{{ error }}</p>
-
-    <div v-else-if="resultado" class=" space-y-12">
-      <!-- Interpretación sin carrusel: todo visible -->
-      <section>
-        <!--<h2 class="text-3xl md:text-4xl font-extrabold tracking-tight text-gray-900">
-          <span class="bg-gradient-to-r from-amber-600 via-rose-500 to-emerald-600 bg-clip-text text-transparent">Cómo interpretar tus resultados</span>
-        </h2>-->
-        
-        <!-- Portada full width (intro) -->
-        <div id="intro" class="-mx-4 sm:-mx-6 lg:-mx-8">
-          <div class="relative h-64 md:h-80 lg:h-96 overflow-hidden">
-            <img src="@/assets/fondo.jpg" alt="Portada bienestar" class="absolute inset-0 h-full w-full object-cover" />
-            <div class="absolute inset-0 bg-gradient-to-r from-black/40 via-black/20 to-transparent"></div>
-            <div class="relative h-full w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center">
-              <div class="max-w-3xl">
-                <h3 class="text-3xl md:text-5xl font-extrabold tracking-tight text-white">Tu bienestar, en una mirada</h3>
-                <div class="mt-4 flex flex-col md:flex-row gap-3">
-                  <div class="rounded-xl bg-white/90 backdrop-blur ring-1 ring-gray-200 px-4 py-3 text-gray-900 text-sm md:text-base">
-                    7 preguntas (0–3 por ítem, total 0–21).
-                  </div>
-                  <div class="rounded-xl bg-white/90 backdrop-blur ring-1 ring-gray-200 px-4 py-3 text-gray-900 text-sm md:text-base">
-                    Una guía amable para conocerte mejor y cuidar tus hábitos
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="relative overflow-hidden ring-1 ring-gray-200">
-          <!-- Fondo zen -->
-          <div class="absolute inset-0">
-            <div class="h-full w-full bg-gradient-to-br from-amber-50 via-rose-50 to-emerald-50"></div>
-            <div class="pointer-events-none absolute -top-16 -left-16 h-72 w-72 rounded-full bg-amber-200/40 blur-3xl"></div>
-            <div class="pointer-events-none absolute -bottom-20 left-1/2 h-80 w-80 -translate-x-1/2 rounded-full bg-rose-200/40 blur-3xl"></div>
-            <div class="pointer-events-none absolute -top-10 -right-16 h-72 w-72 rounded-full bg-emerald-200/40 blur-3xl"></div>
-          </div>
-          <div class="relative p-6 md:p-10 space-y-6">
-            <!-- Puntuación card -->
-            <div id="puntuacion" class="rounded-2xl bg-white/95 ring-1 ring-gray-200 shadow-sm p-6 md:p-7">
-              <h3 class="text-2xl md:text-3xl font-extrabold tracking-tight text-gray-900">Interpretación de la puntuación total</h3>
-              <p class="mt-3 text-lg md:text-xl text-gray-800">Usa el rango para orientarte y decidir próximos pasos. Si la puntuación es alta, prioriza pedir ayuda profesional.</p>
-              <div class="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                <div class="rounded-xl bg-emerald-50 ring-1 ring-emerald-200 p-4 text-center">
-                  <div class="text-3xl">😊</div>
-                  <div class="mt-1 text-base md:text-lg font-semibold text-emerald-900">0–4</div>
-                  <p class="text-sm text-emerald-800/80">Muy baja</p>
-                    </div>
-                <div class="rounded-xl bg-emerald-100 ring-1 ring-emerald-300 p-4 text-center">
-                  <div class="text-3xl">🙂</div>
-                  <div class="mt-1 text-base md:text-lg font-semibold text-emerald-900">5–9</div>
-                  <p class="text-sm text-emerald-900/80">Leve</p>
-                    </div>
-                <div class="rounded-xl bg-amber-100 ring-1 ring-amber-300 p-4 text-center">
-                  <div class="text-3xl">😐</div>
-                  <div class="mt-1 text-base md:text-lg font-semibold text-amber-900">10–14</div>
-                  <p class="text-sm text-amber-900/80">Moderada</p>
-                    </div>
-                <div class="rounded-xl bg-rose-100 ring-1 ring-rose-300 p-4 text-center">
-                  <div class="text-3xl">☹️</div>
-                  <div class="mt-1 text-base md:text-lg font-semibold text-rose-900">15–21</div>
-                  <p class="text-sm text-rose-900/80">Alta</p>
-                    </div>
-              </div>
-            </div>
-            <!-- Dominios card -->
-            <div id="dominios" class="rounded-2xl bg-white/95 ring-1 ring-gray-200 shadow-sm p-6 md:p-7">
-              <h3 class="text-2xl md:text-3xl font-extrabold tracking-tight text-gray-900">Qué mide cada dominio</h3>
-              <div class="mt-4 grid gap-5 sm:grid-cols-2 md:gap-6">
-                <div class="rounded-3xl ring-1 ring-amber-100 bg-amber-50/90 p-5 md:p-6">
-                  <div class="flex items-center gap-3">
-                    <span class="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-200 text-amber-800 text-3xl">🙂</span>
-                    <h4 class="text-2xl md:text-3xl font-extrabold text-gray-900">Ánimo</h4>
-                  </div>
-                  <p class="mt-3 text-lg md:text-xl text-gray-800">Estado de ánimo bajo y pérdida de interés.</p>
-                </div>
-                <div class="rounded-3xl ring-1 ring-rose-100 bg-rose-50/90 p-5 md:p-6">
-                  <div class="flex items-center gap-3">
-                    <span class="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-200 text-rose-800 text-3xl">⚡</span>
-                    <h4 class="text-2xl md:text-3xl font-extrabold text-gray-900">Ansiedad</h4>
-                  </div>
-                  <p class="mt-3 text-lg md:text-xl text-gray-800">Preocupación constante, tensión o nerviosismo.</p>
-                </div>
-                <div class="rounded-3xl ring-1 ring-emerald-100 bg-emerald-50/90 p-5 md:p-6">
-                  <div class="flex items-center gap-3">
-                    <span class="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-200 text-emerald-800 text-3xl">🌙</span>
-                    <h4 class="text-2xl md:text-3xl font-extrabold text-gray-900">Bienestar físico</h4>
-                  </div>
-                  <p class="mt-3 text-lg md:text-xl text-gray-800">Sueño y energía: descanso, cansancio o fatiga.</p>
-                </div>
-                <div class="rounded-3xl ring-1 ring-purple-100 bg-purple-50/90 p-5 md:p-6">
-                  <div class="flex items-center gap-3">
-                    <span class="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-purple-200 text-purple-800 text-3xl">🎯</span>
-                    <h4 class="text-2xl md:text-3xl font-extrabold text-gray-900">Impacto</h4>
-                  </div>
-                  <p class="mt-3 text-lg md:text-xl text-gray-800">Cómo afecta a estudios/trabajo, familia y tareas.</p>
-              </div>
-              </div>
-            </div>
-           
-            <!-- Nota card -->
-            <div id="nota" class="rounded-2xl bg-white/95 ring-1 ring-gray-200 shadow-sm p-6 md:p-7">
-              <h3 class="text-2xl md:text-3xl font-extrabold tracking-tight text-gray-900">Recuerda</h3>
-              <p class="mt-3 text-lg md:text-xl text-gray-800">Este resultado es orientativo, no un diagnóstico. Revisa recursos y considera hablar con un profesional si lo ves necesario. Explora <router-link to="/ayuda" class="font-semibold text-rose-700 hover:text-rose-800">Recursos de apoyo</router-link>.</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- Dominios visuales -->
-      <section>
-        <div class="flex items-end justify_between gap-4">
+    </div>
+    <!-- Dominios visuales -->
+    <section class="px-4 py-4 pb-20 sm:px-6 lg:px-8 bg-gradient-to-br from-amber-50 via-rose-50 to-emerald-50">
+        <div class="flex items-center justify-between gap-4 py-2 md:py-3">
           <h2 class="text-2xl md:text-3xl font-bold text-gray-900">Tus dominios</h2>
           <div class="hidden sm:flex items-center gap-2">
-            <button class="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white ring-1 ring-gray-200 text-gray-700 hover:bg-gray-50" @click="scrollDomains(-1)">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-4 w-4"><path d="M15.75 19.5L8.25 12l7.5-7.5"/></svg>
-            </button>
-            <button class="inline-flex h-9 w-9 items_center justify-center rounded-full bg-white ring-1 ring-gray-200 text-gray-700 hover:bg-gray-50" @click="scrollDomains(1)">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-4 w-4"><path d="M8.25 4.5L15.75 12l-7.5 7.5"/></svg>
-            </button>
+            <div class="p-[1.5px] rounded-2xl bg-gradient-to-r from-amber-500 to-rose-500 hover:from-rose-500 hover:to-amber-500 transition-colors shadow-[0_2px_10px_rgba(0,0,0,.06)]">
+              <button
+                class="inline-flex h-9 w-9 md:h-10 md:w-10 items-center justify-center rounded-2xl bg-white text-gray-700 hover:bg-white focus:outline-none focus:ring-2 focus:ring-rose-300"
+                @click="scrollDomains(-1)" aria-label="Desplazar a la izquierda" title="Anterior">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-5 w-5">
+                  <path d="M15.75 19.5L8.25 12l7.5-7.5" />
+                </svg>
+              </button>
+            </div>
+            <div class="p-[1.5px] rounded-2xl bg-gradient-to-r from-amber-500 to-rose-500 hover:from-rose-500 hover:to-amber-500 transition-colors shadow-[0_2px_10px_rgba(0,0,0,.06)]">
+              <button
+                class="inline-flex h-9 w-9 md:h-10 md:w-10 items-center justify-center rounded-2xl bg-white text-gray-700 hover:bg-white focus:outline-none focus:ring-2 focus:ring-rose-300"
+                @click="scrollDomains(1)" aria-label="Desplazar a la derecha" title="Siguiente">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-5 w-5">
+                  <path d="M8.25 4.5L15.75 12l-7.5 7.5" />
+                </svg>
+              </button>
+            </div>
           </div>
         </div>
-        <div class="mt-4 overflow-x-auto domains-strip scroll-smooth [scrollbar-width:none] [-ms-overflow-style:none]" style="scrollbar-width: none;">
+        <div class="mt-4 overflow-x-auto domains-strip scroll-smooth [scrollbar-width:none] [-ms-overflow-style:none] px-1 sm:px-2"
+          style="scrollbar-width: none;">
           <div class="flex gap-5 min-w-full">
-            <article v-for="c in catBreakdown" :key="c.key" class="group relative w-[92%] sm:w-[520px] shrink-0 overflow-hidden rounded-3xl ring-1 p-0 shadow-sm bg-gradient-to-br" :class="domainBgClass(c.key)">
+            <article v-for="c in catBreakdown" :key="c.key"
+              class="group relative w-[92%] sm:w-[520px] shrink-0 overflow-hidden rounded-3xl p-0 shadow-sm bg-gradient-to-br"
+              :class="domainBgClass(c.key)">
               <!-- Portada -->
               <div class="relative h-40 sm:h-56">
                 <img :src="domainImage(c.key)" alt="" class="absolute inset-0 h-full w-full object-cover opacity-60" />
@@ -505,37 +546,225 @@ export default {
                     <p class="mt-1 text-sm text-gray-700 max-w-md">{{ explanationFor(c) }}</p>
                   </div>
                   <div class="text-right">
-                    <span class="inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-sm font-bold bg-white/80 ring-1 ring-inset" :class="badgeClass(c.wellbeingPercent)">
+                    <span
+                      class="inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-sm font-bold bg-white/80 ring-1 ring-inset"
+                      :class="badgeClass(c.wellbeingPercent)">
                       <span class="select-none">{{ domainEmoji(c.key) }}</span>
                       <span>{{ c.percent }}%</span>
                     </span>
+                    <div v-if="c.overriddenByDeep" class="mt-1 text-[11px] text-gray-600">
+                      <span>General: {{ c.baselineWellbeingPercent }}% · Saber más: {{ c.deepWellbeingPercent }}%</span>
+                    </div>
                   </div>
                 </div>
               </div>
               <!-- Cuerpo -->
               <div class="p-5">
-                <p class="text-sm text-gray-700">Estado actual de {{ c.label.toLowerCase() }}</p>
                 <div class="mt-4">
-                  <template v-if="isDomainRed(c)">
-                    <router-link :to="domainActionTarget(c)" class="inline-flex items-center rounded-full bg-white px-4 py-2 text-sm font-semibold text-rose-700 ring-1 ring-inset ring-rose-200 hover:bg-rose-50">
-                      {{ domainLearnMoreCta(c) }}
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <template v-if="isDomainRed(c)">
+                      <span class="inline-flex items-center rounded-full bg-white px-4 py-2 text-sm font-semibold text-rose-700 ring-1 ring-inset ring-rose-200">Dominio vulnerable</span>
+                      <router-link v-if="c.deepWellbeingPercent === undefined" :to="domainActionTarget(c)"
+                        class="inline-flex items-center rounded-full bg-white px-4 py-2 text-sm font-semibold text-rose-700 ring-1 ring-inset ring-rose-200 hover:bg-rose-50">
+                        {{ domainLearnMoreCta(c) }}
+                      </router-link>
+                    </template>
+                    <template v-else>
+                      <span class="inline-flex items-center rounded-full bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-200">Dominio en buen estado</span>
+                    </template>
+                    <router-link v-if="c.deepResultId" :to="{ name: 'domain-summary', params: { domain: c.key }, query: { resultId: c.deepResultId, fromResultId: resultado?.id || undefined } }"
+                      class="inline-flex items-center rounded-full bg-white px-4 py-2 text-sm font-semibold text-gray-800 ring-1 ring-inset ring-gray-200 hover:bg-gray-50">
+                      Ver diagnóstico
                     </router-link>
-                  </template>
-                  <template v-else>
-                    <span class="inline-flex items-center rounded-full bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-200">Dominio en buen estado</span>
-                  </template>
-      </div>
-      </div>
+                  </div>
+                </div>
+              </div>
             </article>
           </div>
-          
+
         </div>
       </section>
+
+      <!-- Modal explicación porcentajes -->
+      <div v-if="explainOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/40" @click="closeExplain"></div>
+        <div class="relative w-full max-w-lg rounded-2xl bg-white p-6 shadow-lg ring-1 ring-gray-200">
+          <div class="flex items-start justify-between gap-3">
+            <h3 class="text-lg md:text-xl font-bold text-gray-900">Cómo interpretamos estos porcentajes</h3>
+            <button type="button" @click="closeExplain" class="inline-flex h-8 w-8 items-center justify-center rounded-full text-gray-600 hover:bg-gray-100" aria-label="Cerrar">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-5 w-5"><path d="M6.225 4.811a1 1 0 0 0-1.414 1.414L10.586 12l-5.775 5.775a1 1 0 1 0 1.414 1.414L12 13.414l5.775 5.775a1 1 0 0 0 1.414-1.414L13.414 12l5.775-5.775a1 1 0 1 0-1.414-1.414L12 10.586 6.225 4.811Z"/></svg>
+            </button>
+          </div>
+          <div class="mt-4 space-y-2 text-sm text-gray-800">
+            <div>
+              <span class="font-semibold">Dominio:</span>
+              <span>{{ explainDomain?.label }}</span>
+            </div>
+            <div>
+              <span class="font-semibold">General:</span>
+              <span>{{ explainDomain?.baselineWellbeingPercent }}% bienestar</span>
+            </div>
+            <div v-if="explainDomain?.deepWellbeingPercent !== undefined">
+              <span class="font-semibold">Tras saber más:</span>
+              <span>{{ explainDomain?.deepWellbeingPercent }}% bienestar</span>
+            </div>
+            <div class="pt-2 text-xs text-gray-600">
+              Fórmula bienestar general =
+              <template v-if="explainDomain?.key==='animo'">100 − ( (ánimo + anhedonia) / 6 × 100 )</template>
+              <template v-else-if="explainDomain?.key==='ansiedad'">100 − ( (ansiedad + ansiedad_control + ansiedad_tension) / 6 × 100 )</template>
+              <template v-else-if="explainDomain?.key==='bienestar_fisico'">100 − ( (bienestar_fisico + sueño + energía) / 6 × 100 )</template>
+              <template v-else>100 − ( (impacto) / 3 × 100 )</template>
+            </div>
+            <div v-if="explainDomain?.deepWellbeingPercent !== undefined" class="text-xs text-gray-600">
+              Fórmula bienestar “Saber más” = 100 − ( total_dom / 45 × 100 )
+              <span v-if="typeof explainDomain?.deepTotal==='number'"> (total_dom = {{ explainDomain?.deepTotal }})</span>
+            </div>
+            <div>
+              <span class="font-semibold">Situación actual:</span>
+              <span>
+                <template v-if="Number(explainDomain?.finalWellbeingPercent) >= 67">buen estado</template>
+                <template v-else-if="Number(explainDomain?.finalWellbeingPercent) >= 34">estado medio</template>
+                <template v-else>vulnerable</template>
+                ({{ explainDomain?.orientation === 'negative' ? (100 - Number(explainDomain?.finalWellbeingPercent)) + '% señales' : Number(explainDomain?.finalWellbeingPercent) + '% bienestar' }})
+              </span>
+            </div>
+          </div>
+          <div class="mt-5 flex justify-end">
+            <button type="button" @click="closeExplain" class="inline-flex items-center rounded-full bg-white px-4 py-2 text-sm font-semibold text-gray-800 ring-1 ring-inset ring-gray-200 hover:bg-gray-50">Cerrar</button>
+          </div>
+        </div>
+      </div>
+
+    <!-- Estados de carga/errores -->
+    <p v-if="cargando" class="mt-8 h-40 w-full animate-pulse rounded-2xl bg-gray-200/70"></p>
+    <p v-else-if="error" class="mt-8 text-sm font-medium text-red-600">{{ error }}</p>
+
+    
+    <div v-else-if="resultado" class=" space-y-12">
+      <!-- Interpretación sin carrusel: todo visible -->
+      <section>
+        <!--<h2 class="text-3xl md:text-4xl font-extrabold tracking-tight text-gray-900">
+          <span class="bg-gradient-to-r from-amber-600 via-rose-500 to-emerald-600 bg-clip-text text-transparent">Cómo interpretar tus resultados</span>
+        </h2>-->
+
+        <!-- Portada full width (intro) 
+        <div id="intro" class="-mx-4 sm:-mx-6 lg:-mx-8">
+          <div class="relative h-64 md:h-80 lg:h-96 overflow-hidden">
+            <img src="@/assets/fondo.jpg" alt="Portada bienestar" class="absolute inset-0 h-full w-full object-cover" />
+            <div class="absolute inset-0 bg-gradient-to-r from-black/40 via-black/20 to-transparent"></div>
+            <div class="relative h-full w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center">
+              <div class="max-w-3xl">
+                <h3 class="text-3xl md:text-5xl font-extrabold tracking-tight text-white">Tu bienestar, en una mirada
+                </h3>
+                <div class="mt-4">
+                  <div class="  px-4 py-3 text-white text-sm md:text-base font-light">
+                    <span class="text-xl">7 preguntas (0–3 por pregunta, puntuación 0–21) <br> Una guía amable para conocerte mejor y cuidar tus hábitos</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>-->
+        
+        <div class="relative overflow-hidden ring-1 ring-gray-200">
+          <!-- Fondo zen -->
+          <div class="absolute inset-0">
+            <div class="h-full w-full bg-gradient-to-br from-amber-50 via-rose-50 to-emerald-50"></div>
+            <div class="pointer-events-none absolute -top-16 -left-16 h-72 w-72 rounded-full bg-amber-200/40 blur-3xl">
+            </div>
+            <div
+              class="pointer-events-none absolute -bottom-20 left-1/2 h-80 w-80 -translate-x-1/2 rounded-full bg-rose-200/40 blur-3xl">
+            </div>
+            <div
+              class="pointer-events-none absolute -top-10 -right-16 h-72 w-72 rounded-full bg-emerald-200/40 blur-3xl">
+            </div>
+          </div>
+          <div class="relative p-6 md:p-10 space-y-6">
+            <!-- Puntuación card -->
+            <div id="puntuacion" class="rounded-2xl bg-white/95 ring-1 ring-gray-200 shadow-sm p-6 md:p-7">
+              <h3 class="text-2xl md:text-3xl font-extrabold tracking-tight text-gray-900">¿Cómo entender tu puntuación?</h3>
+              <p class="mt-3 text-lg md:text-xl text-gray-800">Usa el rango para orientarte. Si
+                la puntuación es alta, prioriza pedir ayuda profesional.</p>
+              <div class="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <div class="rounded-xl bg-emerald-50 ring-1 ring-emerald-200 p-4 text-center">
+                  <div class="text-3xl">😊</div>
+                  <div class="mt-1 text-base md:text-lg font-semibold text-emerald-900">0–4</div>
+                  <p class="text-sm text-emerald-800/80">Muy baja</p>
+                </div>
+                <div class="rounded-xl bg-emerald-100 ring-1 ring-emerald-300 p-4 text-center">
+                  <div class="text-3xl">🙂</div>
+                  <div class="mt-1 text-base md:text-lg font-semibold text-emerald-900">5–9</div>
+                  <p class="text-sm text-emerald-900/80">Leve</p>
+                </div>
+                <div class="rounded-xl bg-amber-100 ring-1 ring-amber-300 p-4 text-center">
+                  <div class="text-3xl">😐</div>
+                  <div class="mt-1 text-base md:text-lg font-semibold text-amber-900">10–14</div>
+                  <p class="text-sm text-amber-900/80">Moderada</p>
+                </div>
+                <div class="rounded-xl bg-rose-100 ring-1 ring-rose-300 p-4 text-center">
+                  <div class="text-3xl">☹️</div>
+                  <div class="mt-1 text-base md:text-lg font-semibold text-rose-900">15–21</div>
+                  <p class="text-sm text-rose-900/80">Alta</p>
+                </div>
+              </div>
+            </div>
+            <!-- Dominios card -->
+            <div id="dominios" class="rounded-2xl bg-white/95 ring-1 ring-gray-200 shadow-sm p-6 md:p-7">
+              <h3 class="text-2xl md:text-3xl font-extrabold tracking-tight text-gray-900">¿Qué mide cada dominio?</h3>
+              <div class="mt-4 grid gap-5 sm:grid-cols-2 md:gap-6">
+                <div class="rounded-3xl ring-1 ring-amber-100 bg-amber-50/90 p-5 md:p-6">
+                  <div class="flex items-center gap-3">
+                    <span
+                      class="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-200 text-amber-800 text-3xl">🙂</span>
+                    <h4 class="text-2xl md:text-3xl font-extrabold text-gray-900">Ánimo</h4>
+                  </div>
+                  <p class="mt-3 text-lg md:text-xl text-gray-800">Estado de ánimo bajo y pérdida de interés.</p>
+                </div>
+                <div class="rounded-3xl ring-1 ring-rose-100 bg-rose-50/90 p-5 md:p-6">
+                  <div class="flex items-center gap-3">
+                    <span
+                      class="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-200 text-rose-800 text-3xl">⚡</span>
+                    <h4 class="text-2xl md:text-3xl font-extrabold text-gray-900">Ansiedad</h4>
+                  </div>
+                  <p class="mt-3 text-lg md:text-xl text-gray-800">Preocupación constante, tensión o nerviosismo.</p>
+                </div>
+                <div class="rounded-3xl ring-1 ring-emerald-100 bg-emerald-50/90 p-5 md:p-6">
+                  <div class="flex items-center gap-3">
+                    <span
+                      class="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-200 text-emerald-800 text-3xl">🌙</span>
+                    <h4 class="text-2xl md:text-3xl font-extrabold text-gray-900">Bienestar físico</h4>
+                  </div>
+                  <p class="mt-3 text-lg md:text-xl text-gray-800">Sueño y energía: descanso, cansancio o fatiga.</p>
+                </div>
+                <div class="rounded-3xl ring-1 ring-purple-100 bg-purple-50/90 p-5 md:p-6">
+                  <div class="flex items-center gap-3">
+                    <span
+                      class="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-purple-200 text-purple-800 text-3xl">🎯</span>
+                    <h4 class="text-2xl md:text-3xl font-extrabold text-gray-900">Impacto</h4>
+                  </div>
+                  <p class="mt-3 text-lg md:text-xl text-gray-800">Cómo afecta a estudios/trabajo, familia y tareas.</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Nota card -->
+            <div id="nota" class="rounded-2xl bg-white/95 ring-1 ring-gray-200 shadow-sm p-6 md:p-7">
+              <h3 class="text-2xl md:text-3xl font-extrabold tracking-tight text-gray-900">Recuerda</h3>
+              <p class="mt-3 text-lg md:text-xl text-gray-800">Este resultado es orientativo, no un diagnóstico. Revisa
+                recursos y considera hablar con un profesional si lo ves necesario. Explora <router-link to="/ayuda"
+                  class="font-semibold text-rose-700 hover:text-rose-800">Recursos de apoyo</router-link>.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      
     </div>
 
     <div v-else class="mt-8 text-sm text-gray-700">
       <p>No hay datos para mostrar.</p>
-      <router-link :to="{ name: 'results' }" class="font-semibold text-rose-700 hover:text-rose-800">Ir a Mis resultados</router-link>
+      <router-link :to="{ name: 'results' }" class="font-semibold text-rose-700 hover:text-rose-800">Ir a Mis
+        resultados</router-link>
     </div>
   </section>
 </template>
@@ -544,8 +773,17 @@ export default {
 /* Estilos mínimos, Tailwind se encarga del diseño */
 /* Transición fade-in hacia la derecha */
 .fade-right-enter-active,
-.fade-right-leave-active { transition: all 220ms ease; }
-.fade-right-enter-from { opacity: 0; transform: translateX(8px); }
-.fade-right-leave-to { opacity: 0; transform: translateX(-8px); }
-</style>
+.fade-right-leave-active {
+  transition: all 220ms ease;
+}
 
+.fade-right-enter-from {
+  opacity: 0;
+  transform: translateX(8px);
+}
+
+.fade-right-leave-to {
+  opacity: 0;
+  transform: translateX(-8px);
+}
+</style>

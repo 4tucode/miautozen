@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+  <div class="min-h-screen bg-gradient-to-b from-[#f9aaff] via-[#fcedd0] to-[#ffe6f2]">
     <!-- Hero Section -->
     <section class="relative overflow-hidden bg-gradient-to-r from-blue-600 to-indigo-700 text-white">
       <div class="absolute inset-0 bg-black/20"></div>

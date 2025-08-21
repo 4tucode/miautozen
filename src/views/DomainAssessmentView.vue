@@ -1,5 +1,6 @@
 <template>
-  <section class="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 py-8" tabindex="0">
+  <section class="w-full py-8 bg-gradient-to-b from-[#ecf2ff] via-[#FFE5D6] to-[#ffe6f2]" tabindex="0">
+    <div class="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
     <!-- Encabezado -->
     <header class="flex items-start justify-between gap-4">
       <div>
@@ -8,9 +9,15 @@
         </h1>
         <p class="mt-1 text-sm text-gray-600">Profundización de 15 preguntas • Dominio: <span class="font-medium text-gray-900">{{ domainLabel }}</span></p>
       </div>
-      <div class="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white/80 px-3 py-1 text-sm font-medium text-gray-700 shadow-sm">
-        <span class="h-2 w-2 rounded-full bg-gradient-to-r from-purple-800 to-purple-400"></span>
-        {{ currentIndex + 1 }} / {{ totalQuestions }}
+      <div class="flex items-center gap-2">
+        <router-link :to="backToSummaryLink"
+          class="inline-flex items-center rounded-full bg-gradient-to-r from-red-300 to-red-200 px-4 py-1.5 text-xs font-semibold text-white shadow-sm hover:opacity-95">
+          Volver al resumen
+        </router-link>
+        <div class="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white/80 px-3 py-1 text-sm font-medium text-gray-700 shadow-sm">
+          <span class="h-2 w-2 rounded-full bg-gradient-to-r from-purple-800 to-purple-400"></span>
+          {{ currentIndex + 1 }} / {{ totalQuestions }}
+        </div>
       </div>
     </header>
 
@@ -40,7 +47,8 @@
               <input class="peer sr-only" type="radio" :name="questions[currentIndex]?.id" :value="c.value" v-model.number="answers[currentIndex]" />
               <span class="block w-full rounded-lg border bg-white/70 px-4 py-3 text-center font-medium text-gray-800 shadow-sm transition-all duration-150 ease-out peer-focus:ring-2 peer-focus:ring-purple-500"
                 :class="answers[currentIndex] === c.value ? 'border-transparent ring-2 ring-purple-500 bg-purple-50 text-purple-900 shadow' : 'border-gray-300 hover:border-purple-300 hover:bg-purple-50/40'">
-                {{ c.label }}
+                <span class="block text-base">{{ c.label }}</span>
+                <span v-if="c.rangeHint" class="mt-1 block text-xs text-gray-500">(~{{ c.rangeHint }})</span>
               </span>
             </label>
           </div>
@@ -62,12 +70,19 @@
         </button>
       </footer>
 
+      <div class="mt-4">
+        <router-link :to="backToSummaryLink" class="inline-flex items-center justify-center rounded-md bg-white border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-800 shadow-sm hover:bg-gray-50">
+          Volver al resumen general
+        </router-link>
+      </div>
+
       <div class="mt-6 text-[11px] text-gray-500">
         Referencias: herramientas y bancos de ítems orientativos inspirados en
         <a href="https://www.apa.org/depression-guideline/patients-and-families/symptoms" target="_blank" rel="noopener" class="underline">APA – síntomas de depresión</a>,
         <a href="https://www.nice.org.uk/guidance/qs53" target="_blank" rel="noopener" class="underline">NICE – Ansiedad</a>,
         <a href="https://www.sleepfoundation.org/insomnia" target="_blank" rel="noopener" class="underline">Sleep Foundation – Insomnio</a>.
       </div>
+    </div>
     </div>
   </section>
   
@@ -76,7 +91,7 @@
 <script>
 import { auth, db, serverTimestamp } from '@/firebase'
 import { addDoc, collection } from 'firebase/firestore'
-import { listarResultadosPorUsuario, obtenerResultadoPorId } from '@/services/db'
+import { listarResultadosPorUsuario, obtenerResultadoPorId, actualizarResultadoPorId } from '@/services/db'
 
 export default {
   name: 'DomainAssessmentView',
@@ -90,10 +105,10 @@ export default {
       totalQuestions: 15,
       questions: [],
       choices: [
-        { value: 0, label: 'Nunca' },
-        { value: 1, label: 'Varios días' },
-        { value: 2, label: 'Más de la mitad' },
-        { value: 3, label: 'Casi todos los días' }
+        { value: 0, label: 'No, en ningún momento', rangeHint: '0 días' },
+        { value: 1, label: 'Sí, en algunos días', rangeHint: '1–7 días' },
+        { value: 2, label: 'Sí, en más de la mitad de los días', rangeHint: '8–11 días' },
+        { value: 3, label: 'Sí, casi cada día', rangeHint: '12–14 días' }
       ],
       currentIndex: 0,
       answers: Array(15).fill(null),
@@ -119,47 +134,38 @@ export default {
     this.questions = this.buildQuestionsForDomain(key)
     this.totalQuestions = this.questions.length
 
-    // Comprobar restricciones: 1) sólo si dominio en rojo desde fromResultId, 2) no repetir si ya existe
+    // Comprobar restricciones: 1) sólo si dominio en rojo desde fromResultId, 2) no repetir para ESTE resultado base
     try {
       const uid = this.$store.state.usuario?.uid
       if (!uid) {
         this.$router.push({ name: 'login', query: { next: this.$route.fullPath } })
         return
       }
-      // 2) Evitar repetir si ya existe
-      const todos = await listarResultadosPorUsuario(uid)
-      const existing = todos.find(r => (r.formId === this.formId) || (r.domain === this.domainKey))
-      if (existing) {
-        const fromResultId = this.$route.query.fromResultId
-        const query = { resultId: existing.id }
-        if (fromResultId) query.fromResultId = fromResultId
-        this.blockedReason = 'Ya realizaste este formulario de profundización. Te mostramos tu diagnóstico.'
-        this.$router.replace({ name: 'domain-summary', params: { domain: this.domainKey }, query })
-        return
-      }
-      // 1) Validar rojo sólo si viene enlazado desde un resultado
+      // 2) Evitar repetir SOLO si ya existe para este resultado base (fromResultId)
       const fromResultId = this.$route.query.fromResultId
       if (fromResultId) {
-        const base = await obtenerResultadoPorId(fromResultId)
-        // Estimar rojo: wellbeingPercent<34
-        const ds = base?.domainScores || {}
-        const calc = (k) => {
-          if (k === 'animo') return Number(ds?.animo || 0) + Number(ds?.anhedonia || 0)
-          if (k === 'ansiedad') return Number(ds?.ansiedad || 0) + Number(ds?.ansiedad_control || 0) + Number(ds?.ansiedad_tension || 0)
-          if (k === 'bienestar_fisico') return Number(ds?.bienestar_fisico || 0) + Number(ds?.sueno || 0) + Number(ds?.energia || 0)
-          if (k === 'impacto') return Number(ds?.impacto || 0)
-          return 0
-        }
-        const maxByKey = { animo: 6, ansiedad: 6, bienestar_fisico: 6, impacto: 3 }
-        const raw = Math.max(0, Math.min(maxByKey[this.domainKey] || 6, Number(calc(this.domainKey) || 0)))
-        const sev = Math.round((raw / (maxByKey[this.domainKey] || 6)) * 100)
-        const isPositive = new Set(['animo', 'bienestar_fisico']).has(this.domainKey)
-        const display = isPositive ? (100 - sev) : sev
-        const wellbeing = isPositive ? display : (100 - display)
-        if (wellbeing >= 34) {
-          this.blockedReason = 'Este dominio no requiere profundización por ahora.'
-        }
+        try {
+          const base = await obtenerResultadoPorId(fromResultId)
+          const ov = base?.overrides?.[this.domainKey]
+          if (ov?.resultId) {
+            const query = { resultId: ov.resultId, fromResultId }
+            this.blockedReason = 'Ya completaste este dominio para este resultado. Te mostramos tu diagnóstico.'
+            this.$router.replace({ name: 'domain-summary', params: { domain: this.domainKey }, query })
+            return
+          }
+          // Buscar deep vinculado a este base por parentResultId
+          const todos = await listarResultadosPorUsuario(uid)
+          const deep = (todos || []).find(r => String(r.formId || '').startsWith('domain_') && r.domain === this.domainKey && r.parentResultId === fromResultId)
+          if (deep) {
+            const query = { resultId: deep.id, fromResultId }
+            this.blockedReason = 'Ya completaste este dominio para este resultado. Te mostramos tu diagnóstico.'
+            this.$router.replace({ name: 'domain-summary', params: { domain: this.domainKey }, query })
+            return
+          }
+        } catch (e) { /* ignore */ }
       }
+      // 1) Permitir profundización si vienes desde un resultado; no bloquear por umbral
+      // (seguimos evitando duplicados por override o parentResultId más arriba)
     } catch (e) {
       // ignora y permite continuar si no se puede validar
     } finally {
@@ -276,6 +282,46 @@ export default {
         }
         const total = this.answers.reduce((a, v) => a + Number(v || 0), 0)
         const fromResultId = this.$route.query.fromResultId
+        // baseline desde resultado padre
+        let baselineWellbeing = null
+        if (fromResultId) {
+          try {
+            const base = await obtenerResultadoPorId(fromResultId)
+            const ds = base?.domainScores || {}
+            const maxByKey = { animo: 6, ansiedad: 6, bienestar_fisico: 6, impacto: 3 }
+            const calc = (k) => {
+              if (k === 'animo') return Number(ds?.animo || 0) + Number(ds?.anhedonia || 0)
+              if (k === 'ansiedad') return Number(ds?.ansiedad || 0) + Number(ds?.ansiedad_control || 0) + Number(ds?.ansiedad_tension || 0)
+              if (k === 'bienestar_fisico') return Number(ds?.bienestar_fisico || 0) + Number(ds?.sueno || 0) + Number(ds?.energia || 0)
+              if (k === 'impacto') return Number(ds?.impacto || 0)
+              return 0
+            }
+            const raw = Math.max(0, Math.min(maxByKey[this.domainKey] || 6, Number(calc(this.domainKey) || 0)))
+            const sev = Math.round((raw / (maxByKey[this.domainKey] || 6)) * 100)
+            const isPositive = new Set(['animo', 'bienestar_fisico']).has(this.domainKey)
+            const display = isPositive ? (100 - sev) : sev
+            baselineWellbeing = isPositive ? display : (100 - display)
+          } catch (e) { /* ignore */ }
+        }
+        // calcular wellbeing del dominio profundo
+        const maxDeep = 45
+        const severityPercent = Math.round((Math.max(0, Math.min(maxDeep, total)) / maxDeep) * 100)
+        const isPositive = new Set(['animo', 'bienestar_fisico']).has(this.domainKey)
+        const displayPercent = isPositive ? (100 - severityPercent) : severityPercent
+        const wellbeingPercent = isPositive ? displayPercent : (100 - displayPercent)
+        let relative = null
+        if (typeof baselineWellbeing === 'number') {
+          const delta = Number((wellbeingPercent - baselineWellbeing).toFixed(0))
+          const labelMap = { animo: 'Ánimo', ansiedad: 'Ansiedad', bienestar_fisico: 'Bienestar físico', impacto: 'Impacto' }
+          const domainLabel = labelMap[this.domainKey] || 'Dominio'
+          const better = delta > 0
+          const same = delta === 0
+          let message = ''
+          if (same) message = `Tu nivel en ${domainLabel} se mantiene estable (Δ ${delta}%). Mantén tus hábitos y sigue atento/a a cambios.`
+          else if (better) message = `Mejoraste en ${domainLabel} (Δ +${delta}%). Puede deberse a mejores hábitos de sueño/energía, manejo de estrés o apoyo social. Revisa las recomendaciones para consolidarlo.`
+          else message = `Hay más señales en ${domainLabel} (Δ ${delta}%). Esto puede estar influido por estrés reciente, descanso irregular o carga de tareas. Aplica los consejos y considera apoyo si persiste.`
+          relative = { kind: same ? 'same' : (better ? 'improved' : 'worse'), delta, baseline: baselineWellbeing, message }
+        }
         const docRef = await addDoc(collection(db, 'resultados'), {
           usuarioId: user.uid,
           autoevaluacionSlug: this.formId,
@@ -287,8 +333,14 @@ export default {
           answers: this.questions.map((q, i) => ({ id: q.id, domain: q.domain, value: Number(this.answers[i]) })),
           total,
           domain: this.domainKey,
-          parentResultId: fromResultId || null
+          parentResultId: fromResultId || null,
+          wellbeingPercent,
+          ...(relative ? { relative } : {})
         })
+        // Calcular wellbeingPercent para override en el resultado padre si existe
+        if (fromResultId) {
+          await actualizarResultadoPorId(fromResultId, { overrides: { [this.domainKey]: { resultId: docRef.id, wellbeingPercent, total } } })
+        }
         const query = { resultId: docRef.id }
         if (fromResultId) query.fromResultId = fromResultId
         this.$router.push({ name: 'domain-summary', params: { domain: this.domainKey }, query })

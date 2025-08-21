@@ -1,5 +1,5 @@
 <script>
-import { onBeforeUnmount, ref, watch } from 'vue';
+import { onBeforeUnmount, ref, watch, computed } from 'vue';
 import { listarResultadosPorUsuario, listarFavoritosPorUsuario, removeFavorito } from "@/services/db";
 import { Chart, LineController, LineElement, PointElement, LinearScale, CategoryScale, Tooltip, Legend } from 'chart.js';
 import { useStore } from 'vuex';
@@ -111,7 +111,7 @@ export default {
 
     const eliminarFavorito = async (fav) => {
       try {
-        await removeFavorito({ usuarioId: store.state.usuario?.uid, recursoId: fav.recursoId || fav.recurso?.id });
+        await removeFavorito({ id: fav.id, usuarioId: store.state.usuario?.uid, recursoId: fav.recursoId || fav.recurso?.id });
         favoritos.value = favoritos.value.filter(f => f.id !== fav.id);
         toast.info('Se eliminó el recurso de tus favoritos');
       } catch (e) {
@@ -147,20 +147,25 @@ export default {
       return 'text-rose-700 bg-rose-50 border border-rose-200';
     };
 
-    return { resultados, favoritos, canvasEl, loading, formatDate, formatTime, dotClass, badgeClass, eliminarFavorito, iconoCategoria };
+    const displayName = computed(() => {
+      const u = store.state.usuario || {};
+      return u.nombre || u.displayName || (u.email ? u.email.split('@')[0] : '');
+    });
+
+    return { resultados, favoritos, canvasEl, loading, formatDate, formatTime, dotClass, badgeClass, eliminarFavorito, iconoCategoria, displayName };
   }
 }
 </script>
 
 <template>
-  <section class="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-8">
+  <section class="w-full px-4 sm:px-6 lg:px-8 py-8 bg-gradient-to-b from-[#ffd5aa] via-[#fcedd0] to-[#ffe6f2]">
     <header class="flex items-center justify-between">
       <h1 class="text-2xl sm:text-3xl font-bold">
-        <span class="bg-gradient-to-r from-purple-800 to-purple-400 bg-clip-text text-transparent">Mis resultados</span>
+        <span class="bg-gradient-to-r from-purple-800 to-purple-400 bg-clip-text text-transparent">Hola {{ displayName || '👋' }}</span>
       </h1>
     </header>
 
-    <div class="mt-6 grid gap-6 md:grid-cols-3">
+    <div class="mt-6 grid gap-6 md:grid-cols-3 ">
       <!-- Lista -->
       <div class="md:col-span-1 rounded-xl border border-gray-200 bg-white/80 backdrop-blur p-4 shadow-sm">
         <h2 class="text-sm font-semibold text-gray-900">Historial</h2>
@@ -232,7 +237,12 @@ export default {
           </div>
         </article>
       </div>
-      <p v-else class="mt-3 text-sm text-gray-600">Todavía no tienes favoritos. Ve a <router-link class="text-purple-700 hover:text-purple-800 font-medium" :to="{ name: 'resources' }">Recursos</router-link> y marca algunos.</p>
+      <div v-else class="mt-4 rounded-xl border border-gray-200 bg-white/70 p-6 text-center">
+        <p class="text-sm text-gray-700">Todavía no tienes favoritos.</p>
+        <router-link class="mt-2 inline-flex items-center justify-center rounded-lg bg-gradient-to-r from-purple-700 to-purple-500 px-3 py-1.5 text-sm font-semibold text-white shadow hover:from-purple-800 hover:to-purple-600" :to="{ name: 'resources' }">
+          Explorar recursos
+        </router-link>
+      </div>
     </div>
   </section>
 </template>

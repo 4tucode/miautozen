@@ -77,6 +77,9 @@
         <p class="mt-2 text-sm text-gray-600">
           Piensa en cómo te has sentido en las últimas 2 semanas. No hace falta ser exacto: elige la opción que mejor se acerque a tu caso.
         </p>
+        <p v-if="questions[currentIndex]?.domain === 'impacto'" class="mt-1 text-xs font-medium text-emerald-700">
+          Nota sobre Impacto: 0% de impacto es positivo (verde) porque indica que no hay interferencia en tu vida diaria.
+        </p>
 
         <!-- Opciones -->
         <div class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 stagger" role="radiogroup">
