@@ -16,8 +16,9 @@
           <h3 class="text-sm font-semibold uppercase tracking-wide text-gray-900">Legal</h3>
           <ul class="mt-3 space-y-2 text-sm text-gray-700">
             <li><router-link :to="{ name: 'about' }" class="hover:text-gray-900">Sobre</router-link></li>
-            <li><a href="#" class="hover:text-gray-900">Términos y condiciones</a></li>
-            <li><a href="#" class="hover:text-gray-900">Política de privacidad</a></li>
+            <li><router-link :to="{ name: 'terms' }" class="hover:text-gray-900">Términos y condiciones</router-link></li>
+            <li><router-link :to="{ name: 'privacy' }" class="hover:text-gray-900">Política de privacidad</router-link></li>
+            <li><router-link :to="{ name: 'cookies' }" class="hover:text-gray-900">Política de cookies</router-link></li>
           </ul>
         </div>
 

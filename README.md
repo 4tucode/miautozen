@@ -1,24 +1,23 @@
-# miautozen
+# Miautozen
 
-## Project setup
-```
-npm install
-```
+Este proyecto es una app Vue 3 con Vue Router 4, Vuex 4 y Firebase.
 
-### Compiles and hot-reloads for development
-```
-npm run serve
-```
+## Verificación de email y cumplimiento legal
 
-### Compiles and minifies for production
-```
-npm run build
-```
+- Registro envía verificación: al crear cuenta se envía un correo de verificación. Tras registrarse se redirige a `/verificar-email`.
+- Acceso a rutas protegidas: requiere sesión iniciada y email verificado. Si no está verificado, se redirige a `/verificar-email`.
+- Reenvío: desde `/verificar-email` se puede reenviar el email de verificación.
+- Consentimiento: en el registro es obligatorio aceptar Términos y Privacidad. Se guarda `tosAcceptedAt` y `tosVersion` en `usuarios/{uid}`.
+- Páginas legales: disponibles en `/terminos`, `/privacidad` y `/cookies` con contenido base y placeholders.
+- Reglas Firestore: requieren `email_verified` para leer/escribir en colecciones sensibles.
 
-### Lints and fixes files
-```
-npm run lint
-```
+### Pasos de prueba manual
+
+1. Registro → comprobar que llega correo de verificación y redirección a `/verificar-email`.
+2. Intentar acceder a ruta protegida sin verificar → redirige y avisa.
+3. Verificación con `oobCode` → estado actualizado, acceso permitido.
+4. Footer muestra enlaces a Términos/Privacidad/Cookies.
+5. Firestore Rules: crear documentos en `resultados` solo funciona con email verificado.
 
 ### Customize configuration
 See [Configuration Reference](https://cli.vuejs.org/config/).

@@ -136,7 +136,9 @@ export default {
     buildChart() {
       const el = this.$refs.chartEl
       if (!el || !this.result) return
-      const p = Number(this.percent || 0)
+      // Preferir wellbeingPercent si existe directamente en el resultado profundo
+      const pRaw = typeof this.result?.wellbeingPercent === 'number' ? Number(this.result.wellbeingPercent) : Number(this.percent || 0)
+      const p = Math.max(0, Math.min(100, pRaw))
       const data = [p, Math.max(0, 100 - p)]
       const ctx = el.getContext('2d')
       if (this.chartInstance) this.chartInstance.destroy()

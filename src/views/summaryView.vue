@@ -42,66 +42,132 @@ export default {
       }
       const maxByKey = { animo: 6, ansiedad: 6, bienestar_fisico: 6, impacto: 3 }
       const r = this.resultado || {}
+      
+      // Verificar que el resultado tenga datos válidos
+      if (!r || !r.id || Object.keys(r).length === 0) {
+        return out
+      }
+      
+      // Obtener domainScores del resultado o calcular desde respuestas
       let ds = r.domainScores
-      if (!ds) {
-        // calcular desde answers/respuestas para el formulario actual
-        const answers = Array.isArray(r.answers)
-          ? r.answers
-          : Array.isArray(r.respuestas)
-            ? r.respuestas.map(x => ({ domain: x.dominio, value: x.valor }))
-            : []
+      
+      if (!ds || Object.keys(ds).length === 0) {
+        // Calcular desde answers/respuestas del formulario
+        const answers = Array.isArray(r.answers) ? r.answers : []
+        
         const tmp = {}
         answers.forEach(a => {
+          if (!a || !a.domain || a.value === null || a.value === undefined) return
           const k = a.domain
           const v = Number(a.value || 0)
-          if (!k) return
+          if (Number.isNaN(v)) return
           tmp[k] = (tmp[k] || 0) + v
         })
         ds = tmp
       }
+      
+      // Si aún no hay domainScores, calcular desde respuestas antiguas
+      if (!ds || Object.keys(ds).length === 0) {
+        const respuestas = Array.isArray(r.respuestas) ? r.respuestas : []
+        
+        const tmp = {}
+        respuestas.forEach(r => {
+          if (!r || !r.dominio || r.valor === null || r.valor === undefined) return
+          const k = r.dominio
+          const v = Number(r.valor || 0)
+          if (Number.isNaN(v)) return
+          tmp[k] = (tmp[k] || 0) + v
+        })
+        ds = tmp
+      }
+
+      // Agrupar por dominios principales
       const values = {
         animo: Number(ds?.animo || 0) + Number(ds?.anhedonia || 0),
         ansiedad: Number(ds?.ansiedad || 0) + Number(ds?.ansiedad_control || 0) + Number(ds?.ansiedad_tension || 0),
         bienestar_fisico: Number(ds?.bienestar_fisico || 0) + Number(ds?.sueno || 0) + Number(ds?.energia || 0),
         impacto: Number(ds?.impacto || 0)
       }
-      const positiveOrientation = new Set(['animo', 'bienestar_fisico']) // 100% es bueno
-        ;['animo', 'ansiedad', 'bienestar_fisico', 'impacto'].forEach(key => {
-          const max = maxByKey[key]
-          const raw = Math.max(0, Math.min(max, Number(values[key] || 0)))
-          const severityPercent = Math.round((raw / max) * 100) // 100% = más síntomas/impacto
-          const isPositive = positiveOrientation.has(key)
-          const displayPercent = isPositive ? (100 - severityPercent) : severityPercent
-          const wellbeingPercent = isPositive ? displayPercent : (100 - displayPercent)
-          out.push({
-            key,
-            label: labelByKey[key],
-            value: raw,
-            max,
-            // Mostrar: para 'impacto' y 'ansiedad' enseñamos señales directas (0% = buen estado, 100% = peor)
-            percent: ((key === 'impacto' || key === 'ansiedad') ? severityPercent : wellbeingPercent),
-            wellbeingPercent,        // para colores/emoji (alto = verde)
-            baselineWellbeingPercent: wellbeingPercent,
-            orientation: isPositive ? 'positive' : 'negative'
-          })
+      
+      // Calcular porcentajes de bienestar (100% = bienestar máximo)
+      // IMPORTANTE: ansiedad, impacto Y ÁNIMO son inversos (0% = bien, 100% = mal)
+      // Solo bienestar físico es directo (0% = mal, 100% = bien)
+      const positiveOrientation = new Set(['bienestar_fisico']) // Solo bienestar físico es positivo
+      
+      ;['animo', 'ansiedad', 'bienestar_fisico', 'impacto'].forEach(key => {
+        const max = maxByKey[key]
+        const raw = Math.max(0, Math.min(max, Number(values[key] || 0)))
+        
+        const isPositive = positiveOrientation.has(key)
+        let wellbeingPercent
+        
+        if (isPositive) {
+          // Solo bienestar físico: 100% = bienestar máximo, 0% = síntomas máximos
+          // Fórmula: (max - raw) / max * 100
+          // Ejemplo: si raw=0 (sin síntomas), wellbeingPercent=100% (bienestar máximo)
+          wellbeingPercent = Math.round(((max - raw) / max) * 100)
+        } else {
+          // Ánimo, ansiedad e impacto: 0% = bienestar máximo (sin síntomas), 100% = síntomas máximos
+          // Fórmula: (max - raw) / max * 100
+          // Ejemplo: si raw=0 (sin síntomas), wellbeingPercent=100% (bienestar máximo)
+          // Ejemplo: si raw=max (síntomas máximos), wellbeingPercent=0% (sin bienestar)
+          wellbeingPercent = Math.round(((max - raw) / max) * 100)
+        }
+        
+        out.push({
+          key,
+          label: labelByKey[key],
+          value: raw,
+          max,
+          percent: wellbeingPercent, // Porcentaje de bienestar para mostrar
+          wellbeingPercent, // Para colores/emoji
+          baselineWellbeingPercent: wellbeingPercent,
+          orientation: isPositive ? 'positive' : 'negative'
         })
-      // Overrides desde formularios de dominio DE ESTE RESULTADO (sin usar antiguos)
+      })
+
+      // Aplicar overrides desde formularios de dominio si existen
       const overrides = r?.overrides || {}
       const withOverrides = out.map(c => {
         const override = overrides?.[c.key]
         if (override && typeof override.wellbeingPercent === 'number') {
-          const p = Number(override.wellbeingPercent)
-          const finalWellbeing = p
-          const displayForChip = ((c.key === 'impacto' || c.key === 'ansiedad') ? (100 - p) : p)
-          return { ...c, percent: displayForChip, wellbeingPercent: p, deepWellbeingPercent: p, deepTotal: Number(override.total || 0), deepResultId: override.resultId || null, finalWellbeingPercent: finalWellbeing, overriddenByDeep: true, overrideSource: 'parent' }
+          // Para dominios negativos (ánimo, ansiedad, impacto), invertir el porcentaje
+          // porque 0% síntomas = 100% bienestar, 100% síntomas = 0% bienestar
+          // Para dominios positivos (solo bienestar físico), usar directamente el porcentaje
+          const isPositive = positiveOrientation.has(c.key)
+          let finalWellbeingPercent
+          
+          if (isPositive) {
+            // Solo bienestar físico: usar directamente el porcentaje del formulario de dominio
+            // Si el dominio profundo dice 33% bienestar, mostrar 33%
+            finalWellbeingPercent = override.wellbeingPercent
+          } else {
+            // Ánimo, ansiedad e impacto: invertir el porcentaje
+            // Si el dominio profundo dice 33% bienestar, significa 33% síntomas
+            // Por lo tanto, el bienestar real es 100% - 33% = 67%
+            finalWellbeingPercent = 100 - override.wellbeingPercent
+          }
+          
+          return { 
+            ...c, 
+            percent: finalWellbeingPercent, 
+            wellbeingPercent: finalWellbeingPercent, 
+            deepWellbeingPercent: override.wellbeingPercent, // porcentaje original del dominio profundo
+            deepTotal: Number(override.total || 0), 
+            deepResultId: override.resultId || null, 
+            finalWellbeingPercent: finalWellbeingPercent, 
+            overriddenByDeep: true, 
+            overrideSource: 'parent' 
+          }
         }
         return c
       })
-      const withFinal = withOverrides.map(c => (
-        typeof c.finalWellbeingPercent === 'number'
-          ? c
-          : { ...c, finalWellbeingPercent: c.baselineWellbeingPercent }
-      ))
+
+      const withFinal = withOverrides.map(c => ({
+        ...c,
+        finalWellbeingPercent: c.finalWellbeingPercent || c.baselineWellbeingPercent
+      }))
+
       return withFinal.sort((a, b) => Number(a.wellbeingPercent || 0) - Number(b.wellbeingPercent || 0))
     },
     globalWellbeingPercent() {
@@ -112,13 +178,35 @@ export default {
     },
     generalTotal() {
       const r = this.resultado || {}
-      const raw = Number(r?.puntuacion || r?.total || 0)
+      // Verificar que el resultado tenga datos válidos
+      if (!r || !r.id || Object.keys(r).length === 0) {
+        return 0
+      }
       // El formulario general tiene máximo 21 puntos (7 ítems x 0–3)
+      const raw = Number(r?.puntuacion || r?.total || 0)
       const clamped = Math.max(0, Math.min(21, raw))
+      
       return clamped
     }
   },
   methods: {
+    formatDateTime(ts) {
+      try {
+        let d = null
+        if (!ts) return '—'
+        if (typeof ts?.toDate === 'function') {
+          d = ts.toDate()
+        } else if (typeof ts === 'object' && typeof ts?.seconds === 'number') {
+          d = new Date(ts.seconds * 1000)
+        } else if (typeof ts === 'string' || typeof ts === 'number' || ts instanceof Date) {
+          d = new Date(ts)
+        }
+        if (!d || Number.isNaN(d.getTime())) return '—'
+        return new Intl.DateTimeFormat('es-ES', { year: 'numeric', month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' }).format(d)
+      } catch (e) {
+        return '—'
+      }
+    },
     slideBg(kind) {
       try {
         if (kind === 'intro') return require('@/assets/fondo.jpg')
@@ -212,21 +300,43 @@ export default {
         // no-op
       }
     },
-    badgeClass(wellbeingPercent) {
-      const p = Number(wellbeingPercent || 0)
-      if (p >= 67) {
-        return 'text-emerald-700 bg-emerald-50 border border-emerald-200'
+    badgeClass(domain) {
+      const p = Number(domain?.percent || 0)
+      const isPositive = domain?.orientation === 'positive'
+      
+      // Para dominios negativos (ansiedad, impacto): umbrales más bajos
+      // Para dominios positivos (ánimo, bienestar físico): umbrales estándar
+      
+      if (isPositive) {
+        // Dominios positivos: umbrales estándar
+        if (p >= 67) return 'text-emerald-700 bg-emerald-50 border border-emerald-200'
+        if (p >= 34) return 'text-purple-700 bg-purple-50 border border-purple-200'
+        return 'text-rose-700 bg-rose-50 border border-rose-200'
+      } else {
+        // Dominios negativos (ansiedad, impacto): umbrales más bajos
+        // 0-20% = verde (bienestar bajo pero bueno)
+        // 21-40% = morado (estado medio)
+        // 41%+ = rojo (malestar alto)
+        if (p <= 20) return 'text-emerald-700 bg-emerald-50 border border-emerald-200'
+        if (p <= 40) return 'text-purple-700 bg-purple-50 border border-purple-200'
+        return 'text-rose-700 bg-rose-50 border border-rose-200'
       }
-      if (p >= 34) {
-        return 'text-purple-700 bg-purple-50 border border-purple-200'
-      }
-      return 'text-rose-700 bg-rose-50 border border-rose-200'
     },
-    emojiForPercent(wellbeingPercent) {
-      const p = Number(wellbeingPercent || 0)
-      if (p >= 67) return '😊'
-      if (p >= 34) return '😐'
-      return '☹️'
+    emojiForPercent(domain) {
+      const p = Number(domain?.percent || 0)
+      const isPositive = domain?.orientation === 'positive'
+      
+      if (isPositive) {
+        // Dominios positivos: umbrales estándar
+        if (p >= 67) return '😊'
+        if (p >= 34) return '😐'
+        return '☹️'
+      } else {
+        // Dominios negativos (ansiedad, impacto): umbrales más bajos
+        if (p <= 20) return '😊'
+        if (p <= 40) return '😐'
+        return '☹️'
+      }
     },
     explanationFor(c) {
       const p = Number(c?.percent || 0) // porcentaje mostrado
@@ -251,7 +361,17 @@ export default {
       }
     },
     isDomainRed(c) {
-      return Number(c?.wellbeingPercent || 0) < 34
+      // Usar el porcentaje de bienestar calculado (percent), no wellbeingPercent
+      const p = Number(c?.percent || 0)
+      const isPositive = c?.orientation === 'positive'
+      
+      if (isPositive) {
+        // Dominios positivos: umbral estándar
+        return p < 34
+      } else {
+        // Dominios negativos (ansiedad, impacto): umbral más bajo
+        return p > 40
+      }
     },
     hasDeepResultFor(key) {
       return Boolean(this.deepByDomain[key])
@@ -393,29 +513,41 @@ export default {
   },
   async created() {
     try {
+      
+      // Verificar estado de autenticación
       const uid = this.$store.state.usuario?.uid
+      
       if (!uid) {
         this.$router.push({ name: 'login', query: { next: this.$route.fullPath } })
         return
       }
-      // Priorizar explícitamente el resultId (por ejemplo, al volver desde "Saber más")
+      
+      // Verificar query parameters
       const resultId = this.$route.query.resultId
+      
       if (resultId) {
         const fetched = await obtenerResultadoPorId(resultId)
         this.resultado = fetched?.usuarioId === uid ? fetched : null
       }
-      // Si no hay resultId válido, tomar el más reciente de formularios generales (excluir domain_)
+      
+      // Si no hay resultId válido, tomar el más reciente
       if (!this.resultado) {
         const todos = await listarResultadosPorUsuario(uid)
+        
         const generales = (todos || []).filter(r => !String(r.formId || '').startsWith('domain_'))
+        
         this.resultado = generales?.[0] || null
       }
+      
       // No considerar resultados profundos antiguos en este resumen
       this.deepByDomain = {}
-      if (!this.resultado) this.error = 'No se encontró el resultado recién guardado.'
+      if (!this.resultado) {
+        this.error = 'No se encontró el resultado recién guardado.'
+      }
+      
     } catch (e) {
       this.error = 'No se pudo cargar el resumen.'
-      console.error(e)
+      console.error('Error en created:', e)
     } finally {
       this.cargando = false
     }
@@ -471,7 +603,7 @@ export default {
       <div class="relative px-6 sm:px-10 py-10 sm:py-14">
         <h1 class="text-4xl md:text-6xl font-black tracking-tight">
           <span class="bg-gradient-to-r from-amber-600 via-rose-500 to-emerald-600 bg-clip-text text-transparent">Tu
-            resumen de bienestar</span>
+            resumen de Bienestar</span>
         </h1>
         <p class="mt-3 max-w-2xl text-base md:text-lg text-gray-700">Una vista clara y serena de cómo estás. Usa esta
           guía para cuidarte con amabilidad.</p>
@@ -486,8 +618,7 @@ export default {
           </div>
           <div class="rounded-2xl bg-white/80 backdrop-blur ring-1 ring-emerald-200 p-5">
             <p class="text-xs font-medium text-emerald-700">Fecha</p>
-            <p class="mt-1 text-lg md:text-xl font-semibold text-emerald-800">{{ resultado?.creadoEn?.toDate ? new
-              Date(resultado.creadoEn.toDate()).toLocaleString('es-ES') : '—' }}</p>
+            <p class="mt-1 text-lg md:text-xl font-semibold text-emerald-800">{{ formatDateTime(resultado?.creadoEn) }}</p>
           </div>
         </div>
         <div class="mt-6">
@@ -546,7 +677,7 @@ export default {
                   <div class="text-right">
                     <span
                       class="inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-sm font-bold bg-white/80 ring-1 ring-inset"
-                      :class="badgeClass(c.wellbeingPercent)">
+                      :class="badgeClass(c)">
                       <span class="select-none">{{ domainEmoji(c.key) }}</span>
                       <span>{{ c.percent }}%</span>
                     </span>
