@@ -5,6 +5,7 @@ import {
   signOut,
   onAuthStateChanged,
   updateProfile,
+  sendEmailVerification,
 } from "firebase/auth";
 import { doc, setDoc, getDoc } from "firebase/firestore";
 
@@ -35,11 +36,27 @@ async function ensureUsuarioDoc(user) {
  * @param {{ email: string, password: string, nombre?: string }} params
  * @returns {Promise<import('firebase/auth').User>}
  */
-export async function register({ email, password, nombre }) {
+export async function register({ email, password, nombre, tosVersion, tosAcceptedAt }) {
   if (!email || !password) throw new Error("Email y contraseña requeridos");
   const { user } = await createUserWithEmailAndPassword(auth, email, password);
   if (nombre) await updateProfile(user, { displayName: nombre });
   await ensureUsuarioDoc(user);
+  // Guarda consentimiento de TOS si viene
+  if (tosVersion || tosAcceptedAt) {
+    const ref = doc(db, "usuarios", user.uid);
+    await setDoc(
+      ref,
+      { tosVersion: tosVersion || "1.0", tosAcceptedAt: tosAcceptedAt || serverTimestamp() },
+      { merge: true }
+    );
+  }
+  // Enviar verificación de email
+  try {
+    await sendEmailVerification(user);
+  } catch (e) {
+    // Ignoramos el error de envío de email de verificación, el usuario puede reintentar luego
+    void e;
+  }
   return user;
 }
 
@@ -75,6 +92,16 @@ export function watchAuth(callback) {
       return;
     }
     const perfil = await ensureUsuarioDoc(user);
-    callback({ uid: user.uid, ...perfil });
+    callback({ uid: user.uid, emailVerified: !!user.emailVerified, ...perfil });
   });
+}
+
+/**
+ * Reenvía el email de verificación al usuario actual.
+ * @returns {Promise<void>}
+ */
+export async function resendVerification() {
+  const current = auth.currentUser;
+  if (!current) throw new Error("No hay usuario autenticado");
+  await sendEmailVerification(current);
 }

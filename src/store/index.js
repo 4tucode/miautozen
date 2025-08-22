@@ -4,13 +4,14 @@ import { watchAuth, logout } from "@/services/auth";
 
 export default createStore({
   state: {
-    usuario: null,          // { uid, nombre, email, rol }
+    usuario: null,          // { uid, nombre, email, rol, emailVerified }
     cargandoUsuario: true,  // mientras no sepamos el estado real
   },
   getters: {
     isAuth: (s) => !!s.usuario,
     isAdmin: (s) => s.usuario?.rol === "admin",
     perfil: (s) => s.usuario,
+    isVerified: (s) => s.usuario?.emailVerified === true,
   },
   mutations: {
     SET_USUARIO(state, payload) { state.usuario = payload; },
@@ -28,7 +29,7 @@ export default createStore({
         // watchAuth devuelve el unsubscribe
         // eslint-disable-next-line no-unused-vars
         const off = watchAuth((data) => {
-          commit("SET_USUARIO", data);              // data = { uid, ...perfil } o null
+          commit("SET_USUARIO", data);              // data = { uid, ...perfil, emailVerified } o null
           commit("SET_CARGANDO_USUARIO", false);
 
           if (!resolved) {

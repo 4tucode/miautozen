@@ -1,0 +1,23 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() { return request.auth != null }
+    // Requerimos email verificado para acceder a datos personales (RGPD/LOPDGDD)
+    function isVerified() { return request.auth.token.email_verified == true }
+
+    // Perfil del usuario: solo el propio usuario puede leer/escribir su documento
+    match /usuarios/{uid} {
+      allow read: if isSignedIn() && request.auth.uid == uid;
+      // Escribir solo con sesión y email verificado
+      allow write: if isSignedIn() && request.auth.uid == uid && isVerified();
+    }
+
+    // Resultados de autoevaluaciones: acceso restringido a usuarios verificados
+    match /resultados/{docId} {
+      allow read: if isSignedIn() && isVerified();
+      allow create: if isSignedIn() && isVerified();
+      // Bloqueamos actualizaciones y borrados por ahora (principio de minimización)
+      allow update, delete: if false;
+    }
+  }
+}

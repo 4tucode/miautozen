@@ -88,6 +88,14 @@
             <p class="mt-4 text-sm text-gray-700">¿No tienes cuenta? <router-link :to="{ name: 'register' }" class="font-semibold text-purple-700 hover:text-purple-800">Crear cuenta</router-link></p>
           </div>
         </form>
+
+        <div v-if="$store.getters.isAuth && !$store.getters.isVerified" class="mt-4 rounded-md border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-900" role="status" aria-live="polite">
+          Tu email no está verificado.
+          <button @click="resend" :disabled="resending" class="ml-2 inline-flex items-center rounded-full border px-3 py-1.5 text-sm font-medium text-purple-700 bg-white border-purple-200/60 shadow-sm hover:shadow disabled:opacity-60">
+            {{ resending ? 'Enviando…' : 'Reenviar verificación' }}
+          </button>
+          <router-link :to="{ name: 'verify-email' }" class="ml-2 underline font-medium">Verificar ahora</router-link>.
+        </div>
       </div>
     </div>
   </section>
@@ -98,7 +106,7 @@ import { setPersistence, browserLocalPersistence, browserSessionPersistence } fr
 import { useToast } from 'vue-toastification';
 
 import { auth } from "@/firebase";
-import { login } from "@/services/auth";
+import { login, resendVerification } from "@/services/auth";
 
 export default {
   name: "LoginView",
@@ -108,6 +116,7 @@ export default {
       password: "",
       rememberMe: true,
       loading: false,
+      resending: false,
       error: null,
     };
   },
@@ -150,10 +159,16 @@ export default {
       this.loading = true; this.error = "";
       try {
         await setPersistence(auth, this.rememberMe ? browserLocalPersistence : browserSessionPersistence);
-        await login(this.email, this.password);
+        const cred = await login(this.email, this.password);
+        const verified = cred?.user?.emailVerified === true;
         const toast = useToast();
-        toast.success('¡Bienvenido de vuelta!');
-        // La redirección se hará al actualizarse isAuth (watch de arriba)
+        if (!verified) {
+          toast.info('Tu email no está verificado. Te hemos redirigido para completarlo.');
+          this.$router.push({ name: 'verify-email', query: { next: this.nextRoute?.name ? this.$router.resolve(this.nextRoute).href : undefined } });
+        } else {
+          toast.success('¡Bienvenido de vuelta!');
+          // La redirección se hará al actualizarse isAuth (watch de arriba)
+        }
       } catch (e) {
         const msg = this.mapAuthError(e);
         this.error = msg;
@@ -162,6 +177,17 @@ export default {
       }
       this.loading = false;
     },
+    async resend() {
+      this.resending = true;
+      const toast = useToast();
+      try {
+        await resendVerification();
+        toast.info('Hemos reenviado el email de verificación.');
+      } catch (e) {
+        toast.error('No se pudo reenviar el email de verificación.');
+      }
+      this.resending = false;
+    }
   },
 };
 </script>
