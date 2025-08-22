@@ -1,24 +1,54 @@
-import { db, serverTimestamp } from "@/firebase";
 import {
-  collection, doc, getDocs, addDoc, query, where, orderBy, getDoc, setDoc, deleteDoc
+  collection,
+  doc,
+  getDocs,
+  addDoc,
+  query,
+  where,
+  orderBy,
+  getDoc,
+  setDoc,
+  deleteDoc,
 } from "firebase/firestore";
 
+import { db, serverTimestamp } from "@/firebase";
+
+/**
+ * Lista los formularios de autoevaluación disponibles.
+ * @returns {Promise<Array<{id: string} & Record<string, any>>>}
+ */
 export async function listarAutoevaluaciones() {
   const snap = await getDocs(collection(db, "autoevaluaciones"));
   return snap.docs.map(d => ({ id: d.id, ...d.data() }));
 }
 
+/**
+ * Obtiene la definición de una autoevaluación por slug.
+ * @param {string} slug
+ * @returns {Promise<Record<string, any>>}
+ */
 export async function obtenerAutoevaluacion(slug) {
   const snap = await getDoc(doc(db, "autoevaluaciones", slug));
   return { id: slug, ...snap.data() };
 }
 
+/**
+ * Guarda un resultado de evaluación.
+ * @param {{ usuarioId: string, autoevaluacionSlug: string, respuestas: any, puntuacion: number }} payload
+ * @returns {Promise<import('firebase/firestore').DocumentReference>}
+ */
 export async function guardarResultado({ usuarioId, autoevaluacionSlug, respuestas, puntuacion }) {
   return addDoc(collection(db, "resultados"), {
     usuarioId, autoevaluacionSlug, respuestas, puntuacion, creadoEn: serverTimestamp(),
   });
 }
 
+/**
+ * Lista resultados de un usuario ordenados por fecha descendente.
+ * Índice requerido: collection=resultados fields: usuarioId ASC, creadoEn DESC
+ * @param {string} usuarioId
+ * @returns {Promise<Array<{id: string} & Record<string, any>>>}
+ */
 export async function listarResultadosPorUsuario(usuarioId) {
   const q = query(
     collection(db, "resultados"),
@@ -29,6 +59,11 @@ export async function listarResultadosPorUsuario(usuarioId) {
   return snap.docs.map(d => ({ id: d.id, ...d.data() }));
 }
 
+/**
+ * Obtiene un resultado por id.
+ * @param {string} id
+ * @returns {Promise<Record<string, any> | null>}
+ */
 export async function obtenerResultadoPorId(id) {
   const ref = doc(db, "resultados", id);
   const snap = await getDoc(ref);
@@ -36,7 +71,12 @@ export async function obtenerResultadoPorId(id) {
   return { id: snap.id, ...snap.data() };
 }
 
-// Actualiza parcialmente un resultado por id (merge)
+/**
+ * Actualiza parcialmente un resultado por id (merge).
+ * @param {string} id
+ * @param {Record<string, any>} data
+ * @returns {Promise<Record<string, any>>}
+ */
 export async function actualizarResultadoPorId(id, data) {
   if (!id) throw new Error('resultado id requerido');
   const ref = doc(db, 'resultados', id);
@@ -45,6 +85,11 @@ export async function actualizarResultadoPorId(id, data) {
   return { id: snap.id, ...snap.data() };
 }
 
+/**
+ * Guarda un mensaje de contacto en Firestore y lo envía a la cola de correo.
+ * @param {{ nombre: string, email: string, motivo?: string, mensaje: string }} payload
+ * @returns {Promise<import('firebase/firestore').DocumentReference>}
+ */
 export async function guardarMensajeContacto({ nombre, email, motivo, mensaje }) {
   return addDoc(collection(db, 'contacto'), {
     nombre,
@@ -58,6 +103,11 @@ export async function guardarMensajeContacto({ nombre, email, motivo, mensaje })
 // Requiere configurar la extensión Firebase: Trigger Email
 // - Configura el remitente (from) como 4tucode@gmail.com en la extensión
 // - Opcional: proveedor Gmail/SMTP o SendGrid
+/**
+ * Encola un correo de contacto (requiere extensión Trigger Email configurada).
+ * @param {{ nombre: string, email: string, motivo?: string, mensaje: string }} payload
+ * @returns {Promise<import('firebase/firestore').DocumentReference>}
+ */
 export async function enviarCorreoContacto({ nombre, email, motivo, mensaje }) {
   const subject = `[MiAutoZen] Nuevo mensaje de contacto · ${motivo || 'Consulta'}`;
   const appOrigin = typeof window !== 'undefined' ? window.location.origin : '';
@@ -124,6 +174,12 @@ export async function enviarCorreoContacto({ nombre, email, motivo, mensaje }) {
 //   - campos: { usuarioId, recursoId, recurso: { ...metadata }, creadoEn }
 // =====================
 
+/**
+ * Lista favoritos de un usuario ordenados por fecha descendente.
+ * Índice requerido: collection=favoritos fields: usuarioId ASC, creadoEn DESC
+ * @param {string} usuarioId
+ * @returns {Promise<Array<{id: string} & Record<string, any>>>}
+ */
 export async function listarFavoritosPorUsuario(usuarioId) {
   const q = query(
     collection(db, 'favoritos'),
@@ -134,6 +190,11 @@ export async function listarFavoritosPorUsuario(usuarioId) {
   return snap.docs.map(d => ({ id: d.id, ...d.data() }));
 }
 
+/**
+ * Marca un recurso como favorito de forma idempotente.
+ * @param {{ usuarioId: string, recurso: { id: string } & Record<string, any> }} payload
+ * @returns {Promise<Record<string, any>>}
+ */
 export async function setFavorito({ usuarioId, recurso }) {
   if (!usuarioId || !recurso?.id) throw new Error('usuarioId y recurso.id requeridos');
   const favId = `${usuarioId}_${recurso.id}`;
@@ -148,8 +209,12 @@ export async function setFavorito({ usuarioId, recurso }) {
   return { id: snap.id, ...snap.data() };
 }
 
+/**
+ * Elimina un favorito por id directo o por combinación (usuarioId + recursoId).
+ * @param {{ id?: string, usuarioId?: string, recursoId?: string }} payload
+ * @returns {Promise<void>}
+ */
 export async function removeFavorito({ id, usuarioId, recursoId }) {
-  // Permite borrar por id directo o por (usuarioId + recursoId)
   if (id) {
     await deleteDoc(doc(db, 'favoritos', id));
     return;

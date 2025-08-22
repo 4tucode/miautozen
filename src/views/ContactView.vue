@@ -58,7 +58,6 @@ export default {
         motivo.value = ''
         mensaje.value = ''
       } catch (e) {
-        // eslint-disable-next-line no-console
         console.error(e)
         toast.error('No se pudo enviar el mensaje. Inténtalo de nuevo')
       } finally {
@@ -145,7 +144,7 @@ export default {
       <div class="grid gap-6 md:grid-cols-5">
         <!-- Card izquierda con imagen y copy -->
         <div class="md:col-span-2 rounded-2xl overflow-hidden border border-gray-200 bg-white/80 backdrop-blur shadow-sm">
-          <div class="relative h-40 sm:h-52 bg-black">
+          <div class="relative h-40 sm:h-52 bg-black" role="region" aria-label="Video de presentación">
             <div ref="playerEl" class="absolute inset-0 h-full w-full"></div>
             <div class="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/30 to-transparent"></div>
             <button

@@ -126,7 +126,6 @@ export default {
       this.$nextTick(() => this.buildChart())
     } catch (e) {
       this.error = 'No se pudo cargar el resumen de dominio.'
-      // eslint-disable-next-line no-console
       console.error(e)
     } finally {
       this.loading = false
@@ -224,7 +223,6 @@ export default {
         const ts = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')
         pdf.save(`MiAutoZen-Dominio-${this.domainKey}-${ts}.pdf`)
       } catch (e) {
-        // eslint-disable-next-line no-console
         console.error(e)
         window.print && window.print()
       }

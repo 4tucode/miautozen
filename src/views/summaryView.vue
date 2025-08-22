@@ -378,7 +378,6 @@ export default {
         const ts = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')
         pdf.save(`MiAutoZen-Resumen-${ts}.pdf`)
       } catch (e) {
-        // eslint-disable-next-line no-console
         console.error(e)
         window.print && window.print()
       }
@@ -416,7 +415,6 @@ export default {
       if (!this.resultado) this.error = 'No se encontró el resultado recién guardado.'
     } catch (e) {
       this.error = 'No se pudo cargar el resumen.'
-      // eslint-disable-next-line no-console
       console.error(e)
     } finally {
       this.cargando = false
