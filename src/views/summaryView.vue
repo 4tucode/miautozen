@@ -662,13 +662,19 @@ export default {
         <div class="mt-4 overflow-x-auto domains-strip scroll-smooth [scrollbar-width:none] [-ms-overflow-style:none] px-1 sm:px-2"
           style="scrollbar-width: none;">
           <div class="flex gap-5 min-w-full">
-            <article v-for="c in catBreakdown" :key="c.key"
+            <article v-for="(c, index) in catBreakdown" :key="c.key"
               class="group relative w-[92%] sm:w-[520px] shrink-0 overflow-hidden rounded-3xl p-0 shadow-sm bg-gradient-to-br"
               :class="domainBgClass(c.key)">
               <!-- Portada -->
               <div class="relative h-40 sm:h-56">
                 <img :src="domainImage(c.key)" alt="" class="absolute inset-0 h-full w-full object-cover opacity-60" />
                 <div class="absolute inset-0 bg-gradient-to-t from-white/90 via-white/30 to-transparent"></div>
+                <!-- Indicador de posición -->
+                <div class="absolute top-3 right-3">
+                  <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-white/80 text-xs font-bold text-gray-700">
+                    {{ index + 1 }}/{{ catBreakdown.length }}
+                  </span>
+                </div>
                 <div class="relative h-full w-full p-5 flex items-end justify-between">
                   <div class="min-w-0">
                     <h3 class="text-2xl font-extrabold text-gray-900 tracking-tight">{{ c.label }}</h3>
@@ -676,21 +682,113 @@ export default {
                   </div>
                   <div class="text-right">
                     <span
-                      class="inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-sm font-bold bg-white/80 ring-1 ring-inset"
-                      :class="badgeClass(c)">
+                      class="inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-sm font-bold bg-white/80 ring-1 ring-inset cursor-help"
+                      :class="badgeClass(c)"
+                      :title="`${c.label}: ${c.percent}% de bienestar${c.orientation === 'negative' ? ' (menos síntomas = más bienestar)' : ' (más síntomas = menos bienestar)'}`">
                       <span class="select-none">{{ domainEmoji(c.key) }}</span>
                       <span>{{ c.percent }}%</span>
                     </span>
+                    <!-- Indicador de estado con tooltip -->
+                    <div class="mt-1 flex items-center justify-end gap-1">
+                      <span class="inline-flex items-center px-2 py-1 rounded-full text-[10px] font-medium"
+                            :class="{
+                              'bg-emerald-100 text-emerald-800': c.percent >= 67,
+                              'bg-purple-100 text-purple-800': c.percent >= 34 && c.percent < 67,
+                              'bg-rose-100 text-rose-800': c.percent < 34
+                            }"
+                            :title="`Estado: ${c.percent >= 67 ? 'Excelente' : c.percent >= 34 ? 'Aceptable' : 'Necesita atención'}`">
+                        {{ c.percent >= 67 ? '😊 Excelente' : c.percent >= 34 ? '😐 Aceptable' : '☹️ Atención' }}
+                      </span>
+                    </div>
                     <div v-if="c.overriddenByDeep" class="mt-1 text-[11px] text-gray-600">
                       <span>General: {{ c.baselineWellbeingPercent }}% · Saber más: {{ c.deepWellbeingPercent }}%</span>
+                    </div>
+                    <!-- Comparación visual de evolución -->
+                    <div v-if="c.overriddenByDeep" class="mt-2 p-2 bg-white/60 rounded-lg border border-gray-200">
+                      <div class="flex items-center justify-between text-xs mb-1">
+                        <span class="font-medium text-gray-600">Evolución</span>
+                        <span class="font-bold" :class="{
+                          'text-emerald-600': c.percent > c.baselineWellbeingPercent,
+                          'text-rose-600': c.percent < c.baselineWellbeingPercent,
+                          'text-gray-600': c.percent === c.baselineWellbeingPercent
+                        }">
+                          {{ c.percent > c.baselineWellbeingPercent ? '↗️ Mejoró' : 
+                             c.percent < c.baselineWellbeingPercent ? '↘️ Empeoró' : '→ Sin cambios' }}
+                        </span>
+                      </div>
+                      <div class="flex items-center gap-2">
+                        <div class="flex-1">
+                          <div class="text-[10px] text-gray-500 mb-1">General</div>
+                          <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div class="h-full rounded-full bg-gray-400 transition-all duration-300"
+                                 :style="{ width: c.baselineWellbeingPercent + '%' }">
+                            </div>
+                          </div>
+                        </div>
+                        <div class="text-gray-400">→</div>
+                        <div class="flex-1">
+                          <div class="text-[10px] text-gray-500 mb-1">Saber más</div>
+                          <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div class="h-full rounded-full transition-all duration-300"
+                                 :class="{
+                                   'bg-emerald-500': c.percent >= 67,
+                                   'bg-purple-500': c.percent >= 34 && c.percent < 67,
+                                   'bg-rose-500': c.percent < 34
+                                 }"
+                                 :style="{ width: c.percent + '%' }">
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
               <!-- Cuerpo -->
               <div class="p-5">
+                <!-- Barra de progreso visual -->
+                <div class="mb-4">
+                  <div class="flex items-center justify-between text-sm mb-2">
+                    <span class="font-medium text-gray-700">Bienestar</span>
+                    <span class="font-bold" :class="{
+                      'text-emerald-600': c.percent >= 67,
+                      'text-purple-600': c.percent >= 34 && c.percent < 67,
+                      'text-rose-600': c.percent < 34
+                    }">{{ c.percent }}%</span>
+                  </div>
+                  <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                    <div class="h-full rounded-full transition-all duration-500 ease-out"
+                         :class="{
+                           'bg-emerald-500': c.percent >= 67,
+                           'bg-purple-500': c.percent >= 34 && c.percent < 67,
+                           'bg-rose-500': c.percent < 34
+                         }"
+                         :style="{ width: c.percent + '%' }">
+                    </div>
+                  </div>
+                  <!-- Indicadores de umbral -->
+                  <div class="flex justify-between text-xs text-gray-500 mt-1">
+                    <span>0%</span>
+                    <span v-if="c.orientation === 'negative'">20%</span>
+                    <span v-else>34%</span>
+                    <span v-if="c.orientation === 'negative'">40%</span>
+                    <span v-else>67%</span>
+                    <span>100%</span>
+                  </div>
+                </div>
+                
                 <div class="mt-4">
                   <div class="flex items-center gap-2 flex-wrap">
+                    <!-- Botón de explicación rápida -->
+                    <button @click="openExplain(c)" 
+                            class="inline-flex items-center gap-1 rounded-full bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-200 hover:bg-blue-100 transition-colors"
+                            :title="`Explicar cómo se calcula el ${c.percent}% de bienestar en ${c.label}`">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-3 h-3">
+                        <path d="M11.25 4.533A9.707 9.707 0 006 3a9.735 9.735 0 00-3.25.555.75.75 0 00-.5.707v14.25a.75.75 0 001 .707A8.237 8.237 0 016 18.75c1.995 0 3.823.707 5.25 1.886V4.533zM12.75 20.636A8.214 8.214 0 0118 18.75c.966 0 1.89.166 2.75.47a.75.75 0 001-.708V4.262a.75.75 0 00-.5-.707A9.735 9.735 0 0018 3a9.707 9.707 0 00-5.25 1.533v16.103z"/>
+                      </svg>
+                      Explicar
+                    </button>
+                    
                     <template v-if="isDomainRed(c)">
                       <span class="inline-flex items-center rounded-full bg-white px-4 py-2 text-sm font-semibold text-rose-700 ring-1 ring-inset ring-rose-200">Dominio vulnerable</span>
                       <router-link v-if="c.deepWellbeingPercent === undefined" :to="domainActionTarget(c)"
@@ -711,6 +809,22 @@ export default {
             </article>
           </div>
 
+        </div>
+        
+        <!-- Puntos indicadores del carrusel -->
+        <div class="mt-6 flex justify-center">
+          <div class="flex items-center gap-2">
+            <button v-for="(c, index) in catBreakdown" :key="index"
+                    @click="goDomain(index)"
+                    class="w-3 h-3 rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    :class="{
+                      'bg-amber-500 scale-110': domainCurrent === index,
+                      'bg-gray-300 hover:bg-gray-400': domainCurrent !== index
+                    }"
+                    :aria-label="`Ir al dominio ${c.label} (${index + 1} de ${catBreakdown.length})`"
+                    :title="`Ver ${c.label}`">
+            </button>
+          </div>
         </div>
       </section>
 
