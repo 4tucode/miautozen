@@ -28,8 +28,9 @@
 </template>
 
 <script>
-import { applyActionCode, reload, sendEmailVerification } from 'firebase/auth';
 import { useToast } from 'vue-toastification';
+
+import { applyActionCode, reload, sendEmailVerification } from 'firebase/auth';
 
 import { auth } from '@/firebase';
 

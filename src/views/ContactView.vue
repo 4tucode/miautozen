@@ -36,7 +36,7 @@ export default {
     const enviar = async () => {
       if (!nombre.value.trim() || !validarEmail(email.value) || !mensaje.value.trim()) {
         toast.warning('Revisa que el nombre, correo y mensaje sean válidos')
-        return
+        return false
       }
       try {
         enviando.value = true
@@ -58,9 +58,11 @@ export default {
         email.value = ''
         motivo.value = ''
         mensaje.value = ''
+        return true
       } catch (e) {
         console.error(e)
         toast.error('No se pudo enviar el mensaje. Inténtalo de nuevo')
+        return false
       } finally {
         enviando.value = false
       }

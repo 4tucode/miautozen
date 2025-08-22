@@ -267,12 +267,12 @@ export default {
       if (!this.isLast) this.currentIndex++
     },
     handleNextOrSubmit() {
-      if (!this.isLast) return this.goNext()
+      if (!this.isLast) { this.goNext(); return }
       if (this.answers.includes(null)) {
         this.$toast?.info?.('Responde todas las preguntas')
-        return false
+        return
       }
-      return this.submit()
+      this.submit()
     },
     async submit() {
       try {

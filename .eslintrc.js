@@ -26,7 +26,12 @@ module.exports = {
     'import/order': ['error', {
       'groups': ['builtin', 'external', 'internal', ['parent', 'sibling', 'index']],
       'newlines-between': 'always',
-      'alphabetize': { order: 'asc', caseInsensitive: true }
+      'alphabetize': { order: 'asc', caseInsensitive: true },
+      'pathGroups': [
+        { pattern: 'firebase/**', group: 'external', position: 'after' },
+        { pattern: '@/**', group: 'internal', position: 'after' }
+      ],
+      'pathGroupsExcludedImportTypes': ['builtin']
     }]
   },
   plugins: [

@@ -102,8 +102,9 @@
 </template>
 
 <script>
-import { setPersistence, browserLocalPersistence, browserSessionPersistence } from "firebase/auth";
 import { useToast } from 'vue-toastification';
+
+import { setPersistence, browserLocalPersistence, browserSessionPersistence } from "firebase/auth";
 
 import { auth } from "@/firebase";
 import { login, resendVerification } from "@/services/auth";
