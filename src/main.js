@@ -1,10 +1,11 @@
 import { createApp } from 'vue';
-import App from './App.vue';
-import router from './router';
-import store from './store';
-import './assets/tailwind.css';
 import Toast from 'vue-toastification';
 import 'vue-toastification/dist/index.css';
+
+import App from './App.vue';
+import './assets/tailwind.css';
+import router from './router';
+import store from './store';
 
 // Espera a conocer el estado de auth ANTES de montar la app
 store.dispatch('initAuth').then(() => {

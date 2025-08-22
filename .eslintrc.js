@@ -20,7 +20,7 @@ module.exports = {
     'no-unused-vars': ['error', { args: 'after-used', argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
     'no-undef': 'error',
     'eqeqeq': ['error', 'always', { null: 'ignore' }],
-    'curly': ['error', 'all'],
+    'curly': ['error', 'multi-line'],
     'consistent-return': 'error',
     // Orden de imports
     'import/order': ['error', {

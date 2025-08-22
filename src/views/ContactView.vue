@@ -1,8 +1,9 @@
 <script>
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
-import { guardarMensajeContacto, enviarCorreoContacto } from '@/services/db'
 import { useToast } from 'vue-toastification'
+
+import { guardarMensajeContacto, enviarCorreoContacto } from '@/services/db'
 
 export default {
   name: 'ContactView',
@@ -66,7 +67,7 @@ export default {
     }
 
     const loadYouTubeAPI = () => new Promise((resolve) => {
-      if (window.YT && window.YT.Player) return resolve(window.YT)
+      if (window.YT && window.YT.Player) { resolve(window.YT); return }
       const tag = document.createElement('script')
       tag.src = 'https://www.youtube.com/iframe_api'
       document.head.appendChild(tag)

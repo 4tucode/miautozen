@@ -86,8 +86,9 @@
 </template>
 
 <script>
-import { register } from "@/services/auth";
 import { useToast } from 'vue-toastification';
+
+import { register } from "@/services/auth";
 export default {
   data() { return { nombre: "", email: "", password: "", loading: false, error: "" } },
   methods: {

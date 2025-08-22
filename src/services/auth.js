@@ -37,15 +37,10 @@ async function ensureUsuarioDoc(user) {
  */
 export async function register({ email, password, nombre }) {
   if (!email || !password) throw new Error("Email y contraseña requeridos");
-  try {
-    const { user } = await createUserWithEmailAndPassword(auth, email, password);
-    if (nombre) await updateProfile(user, { displayName: nombre });
-    await ensureUsuarioDoc(user);
-    return user;
-  } catch (error) {
-    // Propagamos el error original para que la UI pueda mapear por code
-    throw error;
-  }
+  const { user } = await createUserWithEmailAndPassword(auth, email, password);
+  if (nombre) await updateProfile(user, { displayName: nombre });
+  await ensureUsuarioDoc(user);
+  return user;
 }
 
 /**
@@ -56,11 +51,7 @@ export async function register({ email, password, nombre }) {
  */
 export async function login(email, password) {
   if (!email || !password) throw new Error("Email y contraseña requeridos");
-  try {
-    return await signInWithEmailAndPassword(auth, email, password);
-  } catch (error) {
-    throw error;
-  }
+  return signInWithEmailAndPassword(auth, email, password);
 }
 
 
@@ -79,7 +70,10 @@ export function logout() {
  */
 export function watchAuth(callback) {
   return onAuthStateChanged(auth, async (user) => {
-    if (!user) return callback(null);
+    if (!user) {
+      callback(null);
+      return;
+    }
     const perfil = await ensureUsuarioDoc(user);
     callback({ uid: user.uid, ...perfil });
   });

@@ -1,6 +1,7 @@
 <script>
-import { obtenerResultadoPorId } from '@/services/db'
 import { Chart, DoughnutController, ArcElement, Tooltip, Legend } from 'chart.js'
+
+import { obtenerResultadoPorId } from '@/services/db'
 Chart.register(DoughnutController, ArcElement, Tooltip, Legend)
 
 export default {

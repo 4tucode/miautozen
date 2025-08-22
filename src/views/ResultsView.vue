@@ -1,9 +1,11 @@
 <script>
-import { onBeforeUnmount, ref, watch, computed } from 'vue';
-import { listarResultadosPorUsuario, listarFavoritosPorUsuario, removeFavorito } from "@/services/db";
 import { Chart, LineController, LineElement, PointElement, LinearScale, CategoryScale, Tooltip, Legend } from 'chart.js';
-import { useStore } from 'vuex';
+import { onBeforeUnmount, ref, watch, computed } from 'vue';
 import { useToast } from 'vue-toastification';
+import { useStore } from 'vuex';
+
+import { listarResultadosPorUsuario, listarFavoritosPorUsuario, removeFavorito } from "@/services/db";
+
 
 Chart.register(LineController, LineElement, PointElement, LinearScale, CategoryScale, Tooltip, Legend);
 
