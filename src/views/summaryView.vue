@@ -303,20 +303,28 @@ export default {
     badgeClass(domain) {
       const p = Number(domain?.percent || 0)
       const isPositive = domain?.orientation === 'positive'
+      const isAnimo = domain?.key === 'animo'
       
-      // Para dominios negativos (ansiedad, impacto): umbrales más bajos
-      // Para dominios positivos (ánimo, bienestar físico): umbrales estándar
+      // LÓGICA CORREGIDA:
+      // Para ÁNIMO: 0% = malestar máximo (rojo), 100% = bienestar máximo (verde)
+      // Para dominios negativos (ansiedad, impacto): 0% = bienestar máximo (verde), 100% = malestar máximo (rojo)
+      // Para dominios positivos (bienestar físico): 0% = malestar máximo (rojo), 100% = bienestar máximo (verde)
       
-      if (isPositive) {
-        // Dominios positivos: umbrales estándar
+      if (isAnimo) {
+        // Ánimo: lógica específica - 0% = rojo, 50% = morado, 100% = verde
+        if (p <= 20) return 'text-rose-700 bg-rose-50 border border-rose-200'
+        if (p <= 50) return 'text-purple-700 bg-purple-50 border border-purple-200'
+        return 'text-emerald-700 bg-emerald-50 border border-emerald-200'
+      } else if (isPositive) {
+        // Solo bienestar físico: umbrales estándar
         if (p >= 67) return 'text-emerald-700 bg-emerald-50 border border-emerald-200'
         if (p >= 34) return 'text-purple-700 bg-purple-50 border border-purple-200'
         return 'text-rose-700 bg-rose-50 border border-rose-200'
       } else {
-        // Dominios negativos (ansiedad, impacto): umbrales más bajos
-        // 0-20% = verde (bienestar bajo pero bueno)
+        // Ansiedad e impacto: umbrales invertidos
+        // 0-20% = verde (bienestar máximo, sin síntomas)
         // 21-40% = morado (estado medio)
-        // 41%+ = rojo (malestar alto)
+        // 41%+ = rojo (malestar alto, muchos síntomas)
         if (p <= 20) return 'text-emerald-700 bg-emerald-50 border border-emerald-200'
         if (p <= 40) return 'text-purple-700 bg-purple-50 border border-purple-200'
         return 'text-rose-700 bg-rose-50 border border-rose-200'
@@ -325,14 +333,28 @@ export default {
     emojiForPercent(domain) {
       const p = Number(domain?.percent || 0)
       const isPositive = domain?.orientation === 'positive'
+      const isAnimo = domain?.key === 'animo'
       
-      if (isPositive) {
-        // Dominios positivos: umbrales estándar
+      // LÓGICA CORREGIDA:
+      // Para ÁNIMO: 0% = malestar máximo (☹️), 100% = bienestar máximo (😊)
+      // Para dominios negativos (ansiedad, impacto): 0% = bienestar máximo (😊), 100% = malestar máximo (☹️)
+      // Para dominios positivos (bienestar físico): 0% = malestar máximo (☹️), 100% = bienestar máximo (😊)
+      
+      if (isAnimo) {
+        // Ánimo: lógica específica - 0% = ☹️, 50% = 😐, 100% = 😊
+        if (p <= 20) return '☹️' // Malestar máximo = triste
+        if (p <= 50) return '😐' // Estado medio = neutral
+        return '😊' // Bienestar máximo = feliz
+      } else if (isPositive) {
+        // Solo bienestar físico: umbrales estándar
         if (p >= 67) return '😊'
         if (p >= 34) return '😐'
         return '☹️'
       } else {
-        // Dominios negativos (ansiedad, impacto): umbrales más bajos
+        // Ansiedad e impacto: umbrales invertidos
+        // 0-20% = 😊 (bienestar máximo, sin síntomas)
+        // 21-40% = 😐 (estado medio)
+        // 41%+ = ☹️ (malestar alto, muchos síntomas)
         if (p <= 20) return '😊'
         if (p <= 40) return '😐'
         return '☹️'
@@ -347,13 +369,26 @@ export default {
         impacto: 'interferencia en tus actividades diarias'
       }
       const domainDesc = domainDescByKey[c?.key] || 'este dominio'
-      // Mensajes adaptados por orientación
-      if (c.orientation === 'positive') {
+      
+      // LÓGICA CORREGIDA:
+      // Para ÁNIMO: 0% = malestar máximo, 100% = bienestar máximo
+      // Para dominios negativos (ansiedad, impacto): 0% = bienestar máximo, 100% = malestar máximo
+      // Para dominios positivos (bienestar físico): 0% = malestar máximo, 100% = bienestar máximo
+      
+      if (c.key === 'animo') {
+        // Ánimo: lógica específica - 0% = malestar, 100% = bienestar
+        let nivel = 'bajo', detalle = 'estado de ánimo bajo', sugerencia = 'considera buscar apoyo'
+        if (p > 66) { nivel = 'alto'; detalle = 'muy buen estado de ánimo'; sugerencia = 'sigue cuidando tu bienestar emocional' }
+        else if (p > 33) { nivel = 'moderado'; detalle = 'estado de ánimo aceptable'; sugerencia = 'consolida hábitos que mejoren tu ánimo' }
+        return `Tienes un ${p}% en ${c.label} (${nivel}): ${detalle}; ${sugerencia}.`
+      } else if (c.orientation === 'positive') {
+        // Solo bienestar físico: lógica estándar
         let nivel = 'bajo', detalle = 'podría mejorar', sugerencia = 'pequeños hábitos pueden ayudar'
         if (p > 66) { nivel = 'alto'; detalle = 'muy buen estado'; sugerencia = 'sigue cuidando tus rutinas' }
         else if (p > 33) { nivel = 'moderado'; detalle = 'estado aceptable'; sugerencia = 'consolida tus hábitos saludables' }
         return `Tienes un ${p}% en ${c.label} (${nivel}): ${detalle}; ${sugerencia}.`
       } else {
+        // Ansiedad e impacto: lógica invertida
         let nivel = 'bajo', detalle = 'señales leves', sugerencia = 'estás cerca de tu bienestar'
         if (p > 66) { nivel = 'alto'; detalle = 'señales elevadas'; sugerencia = 'considera buscar apoyo si persiste' }
         else if (p > 33) { nivel = 'moderado'; detalle = 'señales moderadas'; sugerencia = 'cuidar hábitos y rutinas puede ayudar' }
@@ -364,12 +399,22 @@ export default {
       // Usar el porcentaje de bienestar calculado (percent), no wellbeingPercent
       const p = Number(c?.percent || 0)
       const isPositive = c?.orientation === 'positive'
+      const isAnimo = c?.key === 'animo'
       
-      if (isPositive) {
-        // Dominios positivos: umbral estándar
+      // LÓGICA CORREGIDA:
+      // Para ÁNIMO: 0% = vulnerable (rojo), 100% = buen estado (no rojo)
+      // Para dominios negativos (ansiedad, impacto): 0% = bienestar máximo (no rojo), 100% = malestar máximo (rojo)
+      // Para dominios positivos (bienestar físico): 0% = malestar máximo (rojo), 100% = bienestar máximo (no rojo)
+      
+      if (isAnimo) {
+        // Ánimo: lógica específica - 0-20% = rojo (vulnerable), 21%+ = no rojo
+        return p <= 20
+      } else if (isPositive) {
+        // Solo bienestar físico: umbral estándar
         return p < 34
       } else {
-        // Dominios negativos (ansiedad, impacto): umbral más bajo
+        // Ansiedad e impacto: umbral invertido
+        // 0-20% = verde (no rojo), 21-40% = morado (no rojo), 41%+ = rojo
         return p > 40
       }
     },
@@ -688,18 +733,18 @@ export default {
                       <span class="select-none">{{ domainEmoji(c.key) }}</span>
                       <span>{{ c.percent }}%</span>
                     </span>
-                    <!-- Indicador de estado con tooltip -->
-                    <div class="mt-1 flex items-center justify-end gap-1">
-                      <span class="inline-flex items-center px-2 py-1 rounded-full text-[10px] font-medium"
-                            :class="{
-                              'bg-emerald-100 text-emerald-800': c.percent >= 67,
-                              'bg-purple-100 text-purple-800': c.percent >= 34 && c.percent < 67,
-                              'bg-rose-100 text-rose-800': c.percent < 34
-                            }"
-                            :title="`Estado: ${c.percent >= 67 ? 'Excelente' : c.percent >= 34 ? 'Aceptable' : 'Necesita atención'}`">
-                        {{ c.percent >= 67 ? '😊 Excelente' : c.percent >= 34 ? '😐 Aceptable' : '☹️ Atención' }}
-                      </span>
-                    </div>
+                                         <!-- Indicador de estado con tooltip -->
+                     <div class="mt-1 flex items-center justify-end gap-1">
+                       <span class="inline-flex items-center px-2 py-1 rounded-full text-[10px] font-medium"
+                             :class="{
+                               'bg-emerald-100 text-emerald-800': (c.key === 'animo' && c.percent > 50) || (c.orientation === 'positive' && c.percent >= 67) || (c.orientation === 'negative' && c.percent <= 20),
+                               'bg-purple-100 text-purple-800': (c.key === 'animo' && c.percent > 20 && c.percent <= 50) || (c.orientation === 'positive' && c.percent >= 34 && c.percent < 67) || (c.orientation === 'negative' && c.percent > 20 && c.percent <= 40),
+                               'bg-rose-100 text-rose-800': (c.key === 'animo' && c.percent <= 20) || (c.orientation === 'positive' && c.percent < 34) || (c.orientation === 'negative' && c.percent > 40)
+                             }"
+                                                          :title="`Estado: ${((c.key === 'animo' && c.percent > 50) || (c.orientation === 'positive' && c.percent >= 67) || (c.orientation === 'negative' && c.percent <= 20)) ? 'Excelente' : ((c.key === 'animo' && c.percent > 20) || (c.orientation === 'positive' && c.percent >= 34) || (c.orientation === 'negative' && c.percent <= 40)) ? 'Aceptable' : 'Necesita atención'}`">
+                          {{ ((c.key === 'animo' && c.percent > 50) || (c.orientation === 'positive' && c.percent >= 67) || (c.orientation === 'negative' && c.percent <= 20)) ? '😊 Excelente' : ((c.key === 'animo' && c.percent > 20) || (c.orientation === 'positive' && c.percent >= 34) || (c.orientation === 'negative' && c.percent <= 20)) ? '😐 Aceptable' : '☹️ Atención' }}
+                       </span>
+                     </div>
                     <div v-if="c.overriddenByDeep" class="mt-1 text-[11px] text-gray-600">
                       <span>General: {{ c.baselineWellbeingPercent }}% · Saber más: {{ c.deepWellbeingPercent }}%</span>
                     </div>
@@ -726,19 +771,19 @@ export default {
                           </div>
                         </div>
                         <div class="text-gray-400">→</div>
-                        <div class="flex-1">
-                          <div class="text-[10px] text-gray-500 mb-1">Saber más</div>
-                          <div class="w-full bg-gray-200 rounded-full h-2">
-                            <div class="h-full rounded-full transition-all duration-300"
-                                 :class="{
-                                   'bg-emerald-500': c.percent >= 67,
-                                   'bg-purple-500': c.percent >= 34 && c.percent < 67,
-                                   'bg-rose-500': c.percent < 34
-                                 }"
-                                 :style="{ width: c.percent + '%' }">
-                            </div>
-                          </div>
-                        </div>
+                                                 <div class="flex-1">
+                           <div class="text-[10px] text-gray-500 mb-1">Saber más</div>
+                           <div class="w-full bg-gray-200 rounded-full h-2">
+                             <div class="h-full rounded-full transition-all duration-300"
+                                  :class="{
+                                    'bg-emerald-500': (c.key === 'animo' && c.percent > 50) || (c.orientation === 'positive' && c.percent >= 67) || (c.orientation === 'negative' && c.percent <= 20),
+                                    'bg-purple-500': (c.key === 'animo' && c.percent > 20 && c.percent <= 50) || (c.orientation === 'positive' && c.percent >= 34 && c.percent < 67) || (c.orientation === 'negative' && c.percent > 20 && c.percent <= 40),
+                                    'bg-rose-500': (c.key === 'animo' && c.percent <= 20) || (c.orientation === 'positive' && c.percent < 34) || (c.orientation === 'negative' && c.percent > 40)
+                                  }"
+                                  :style="{ width: c.percent + '%' }">
+                             </div>
+                           </div>
+                         </div>
                       </div>
                     </div>
                   </div>
@@ -750,31 +795,34 @@ export default {
                 <div class="mb-4">
                   <div class="flex items-center justify-between text-sm mb-2">
                     <span class="font-medium text-gray-700">Bienestar</span>
-                    <span class="font-bold" :class="{
-                      'text-emerald-600': c.percent >= 67,
-                      'text-purple-600': c.percent >= 34 && c.percent < 67,
-                      'text-rose-600': c.percent < 34
-                    }">{{ c.percent }}%</span>
+                                         <span class="font-bold" :class="{
+                       'text-emerald-600': (c.key === 'animo' && c.percent > 50) || (c.orientation === 'positive' && c.percent >= 67) || (c.orientation === 'negative' && c.percent <= 20),
+                       'text-purple-600': (c.key === 'animo' && c.percent > 20 && c.percent <= 50) || (c.orientation === 'positive' && c.percent >= 34 && c.percent < 67) || (c.orientation === 'negative' && c.percent > 20 && c.percent <= 40),
+                       'text-rose-600': (c.key === 'animo' && c.percent <= 20) || (c.orientation === 'positive' && c.percent < 34) || (c.orientation === 'negative' && c.percent > 40)
+                     }">{{ c.percent }}%</span>
                   </div>
+                  <h2 class="text-sm font-medium text-gray-700">{{c.percent }} {{c.key}} {{c.orientation}} foty</h2>
                   <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
-                    <div class="h-full rounded-full transition-all duration-500 ease-out"
-                         :class="{
-                           'bg-emerald-500': c.percent >= 67,
-                           'bg-purple-500': c.percent >= 34 && c.percent < 67,
-                           'bg-rose-500': c.percent < 34
-                         }"
-                         :style="{ width: c.percent + '%' }">
+                                         <div class="h-full rounded-full transition-all duration-500 ease-out"
+                          :class="{
+                            'bg-emerald-500': (c.key === 'animo' && c.percent > 50) || (c.orientation === 'positive' && c.percent >= 67) || (c.orientation === 'negative' && c.percent <= 20),
+                            'bg-purple-500': (c.key === 'animo' && c.percent > 20 && c.percent <= 50) || (c.orientation === 'positive' && c.percent >= 34 && c.percent < 67) || (c.orientation === 'negative' && c.percent > 20 && c.percent <= 40),
+                            'bg-rose-500': (c.key === 'animo' && c.percent <= 20) || (c.orientation === 'positive' && c.percent < 34) || (c.orientation === 'negative' && c.percent > 40)
+                          }"
+                          :style="{ width: c.percent + '%' }">
                     </div>
                   </div>
-                  <!-- Indicadores de umbral -->
-                  <div class="flex justify-between text-xs text-gray-500 mt-1">
-                    <span>0%</span>
-                    <span v-if="c.orientation === 'negative'">20%</span>
-                    <span v-else>34%</span>
-                    <span v-if="c.orientation === 'negative'">40%</span>
-                    <span v-else>67%</span>
-                    <span>100%</span>
-                  </div>
+                                     <!-- Indicadores de umbral -->
+                   <div class="flex justify-between text-xs text-gray-500 mt-1">
+                     <span>0%</span>
+                     <span v-if="c.key === 'animo'">20%</span>
+                     <span v-else-if="c.orientation === 'negative'">20%</span>
+                     <span v-else>34%</span>
+                     <span v-if="c.key === 'animo'">50%</span>
+                     <span v-else-if="c.orientation === 'negative'">40%</span>
+                     <span v-else>67%</span>
+                     <span>100%</span>
+                   </div>
                 </div>
                 
                 <div class="mt-4">
