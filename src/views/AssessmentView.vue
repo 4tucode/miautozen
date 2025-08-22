@@ -147,8 +147,9 @@
 </template>
 
 <script>
-import { db, auth, serverTimestamp } from '@/firebase'
 import { doc, getDoc, collection, addDoc } from 'firebase/firestore'
+
+import { db, auth, serverTimestamp } from '@/firebase'
 
 export default {
   name: 'AssessmentView',
@@ -269,9 +270,9 @@ export default {
       if (!this.isLast) return this.goNext()
       if (this.answers.includes(null) && !this.allowSkip) {
         this.$toast?.info?.('Responde todas las preguntas')
-        return
+        return false
       }
-      this.submit()
+      return this.submit()
     },
     calcDomainScores() {
       // Suma por dominios: ánimo(1+2), ansiedad(3+4), sueño/energía(5+6), impacto(7)

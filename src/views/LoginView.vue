@@ -94,10 +94,11 @@
 </template>
 
 <script>
-import { login } from "@/services/auth";
-import { auth } from "@/firebase";
 import { setPersistence, browserLocalPersistence, browserSessionPersistence } from "firebase/auth";
 import { useToast } from 'vue-toastification';
+
+import { auth } from "@/firebase";
+import { login } from "@/services/auth";
 
 export default {
   name: "LoginView",

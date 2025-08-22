@@ -89,8 +89,9 @@
 </template>
 
 <script>
-import { auth, db, serverTimestamp } from '@/firebase'
 import { addDoc, collection } from 'firebase/firestore'
+
+import { auth, db, serverTimestamp } from '@/firebase'
 import { listarResultadosPorUsuario, obtenerResultadoPorId, actualizarResultadoPorId } from '@/services/db'
 
 export default {
@@ -269,9 +270,9 @@ export default {
       if (!this.isLast) return this.goNext()
       if (this.answers.includes(null)) {
         this.$toast?.info?.('Responde todas las preguntas')
-        return
+        return false
       }
-      this.submit()
+      return this.submit()
     },
     async submit() {
       try {

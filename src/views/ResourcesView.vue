@@ -1,8 +1,9 @@
 <script>
 import { computed, ref, watch } from 'vue';
-import { useStore } from 'vuex';
-import { setFavorito, listarFavoritosPorUsuario } from '@/services/db';
 import { useToast } from 'vue-toastification';
+import { useStore } from 'vuex';
+
+import { setFavorito, listarFavoritosPorUsuario } from '@/services/db';
 
 // Catálogo base de recursos
 // id estable para clave de favorito: `${uid}_${id}`

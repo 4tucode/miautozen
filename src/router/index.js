@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router';
-import store from '@/store';
 import { useToast } from 'vue-toastification';
+
+import store from '@/store';
 
 const routes = [
   {
@@ -155,7 +156,7 @@ router.beforeEach((to, from, next) => {
     if (to.meta?.guest && isAuth) {
       return next({ name: 'home' });
     }
-    next();
+    return next();
   };
 
   // Si todavía estamos cargando el usuario, espera
