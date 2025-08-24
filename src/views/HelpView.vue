@@ -1,23 +1,34 @@
 <template>
   <div class="min-h-screen bg-gradient-to-b from-[#f9aaff] via-[#fcedd0] to-[#ffe6f2]">
-    <!-- Hero Section -->
+    <!-- Hero Section con efecto de portada de SummaryView -->
     <section class="relative overflow-hidden bg-gradient-to-r from-blue-600 to-indigo-700 text-white">
-      <div class="absolute inset-0 bg-black/20"></div>
-      <div class="relative mx-auto max-w-7xl px-4 py-24 sm:px-6 lg:px-8">
-        <div class="text-center">
-          <div v-reveal class="reveal mb-6 inline-flex items-center rounded-full bg-white/20 px-4 py-2 text-sm font-medium backdrop-blur" style="--reveal-delay: 0ms">
-            <svg class="mr-2 h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
-              <path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-            </svg>
-            Ayuda Inmediata Disponible
+      <!-- Portada full width con imagen de fondo -->
+      <div class="-mx-4 sm:-mx-6 lg:-mx-8">
+        <div class="relative h-64 md:h-80 lg:h-96 overflow-hidden">
+          <img src="@/assets/fondo.jpg" alt="Portada ayuda" class="absolute inset-0 h-full w-full object-cover" />
+          <!-- Filtro con colores cálidos -->
+          <div class="absolute inset-0 bg-gradient-to-br from-orange-500/30 via-amber-400/25 to-rose-500/35"></div>
+          <!-- Overlay oscuro para legibilidad del texto -->
+          <div class="absolute inset-0 bg-gradient-to-r from-black/30 via-black/15 to-transparent"></div>
+          <div class="relative h-full w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center">
+            <div class="max-w-3xl">
+              <div class="mb-6 inline-flex items-center rounded-full bg-white/20 px-4 py-2 text-sm font-medium backdrop-blur">
+                <svg class="mr-2 h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                Ayuda Inmediata Disponible
+              </div>
+              <h1 class="text-3xl md:text-5xl font-extrabold tracking-tight text-white">
+                Estamos aquí para
+                <span class="text-yellow-300">ayudarte</span>
+              </h1>
+              <div class="mt-4">
+                <div class="px-4 py-3 text-white text-sm md:text-base font-light">
+                  <span class="text-xl">Encuentra recursos de apoyo inmediato, profesionales especializados y herramientas para cuidar tu bienestar mental. No estás solo en esto.</span>
+                </div>
+              </div>
+            </div>
           </div>
-          <h1 v-reveal class="reveal mb-6 text-4xl font-bold tracking-tight sm:text-6xl" style="--reveal-delay: 120ms">
-            Estamos aquí para
-            <span class="text-yellow-300">ayudarte</span>
-          </h1>
-          <p v-reveal class="reveal mx-auto max-w-2xl text-xl text-blue-100" style="--reveal-delay: 240ms">
-            Encuentra recursos de apoyo inmediato, profesionales especializados y herramientas para cuidar tu bienestar mental. No estás solo en esto.
-          </p>
         </div>
       </div>
     </section>
@@ -241,15 +252,15 @@
                 {{ specialty }}
               </span>
             </div>
-            <div class="mt-3 space-y-1 text-sm text-gray-600">
+            <div class="mt-2 space-y-1 text-xs text-gray-600">
               <div v-if="professional.schedule" class="flex items-center gap-2">
-                <svg class="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <svg class="w-3 h-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd" />
                 </svg>
                 Disponible: {{ professional.schedule }}
               </div>
               <div v-if="professional.phone" class="flex items-center gap-2">
-                <svg class="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <svg class="w-3 h-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
                 </svg>
                 <a :href="'tel:' + professional.phone" class="hover:text-blue-600 transition-colors">
@@ -257,7 +268,7 @@
                 </a>
               </div>
               <div v-if="professional.email" class="flex items-center gap-2">
-                <svg class="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <svg class="w-3 h-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M3 8l7.89 3.26a2 2 0 001.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                 </svg>
                 <a :href="'mailto:' + professional.email" class="hover:text-blue-600 transition-colors">
@@ -265,7 +276,7 @@
                 </a>
               </div>
               <div v-if="professional.price" class="flex items-center gap-2 text-green-600 font-medium">
-                <svg class="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <svg class="w-3 h-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4zM18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" />
                 </svg>
                 {{ professional.price }}
