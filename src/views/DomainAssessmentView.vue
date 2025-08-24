@@ -289,17 +289,17 @@ export default {
           try {
             const base = await obtenerResultadoPorId(fromResultId)
             const ds = base?.domainScores || {}
-            const maxByKey = { animo: 6, ansiedad: 6, bienestar_fisico: 6, impacto: 3 }
-            const calc = (k) => {
-              if (k === 'animo') return Number(ds?.animo || 0) + Number(ds?.anhedonia || 0)
-              if (k === 'ansiedad') return Number(ds?.ansiedad || 0) + Number(ds?.ansiedad_control || 0) + Number(ds?.ansiedad_tension || 0)
-              if (k === 'bienestar_fisico') return Number(ds?.bienestar_fisico || 0) + Number(ds?.sueno || 0) + Number(ds?.energia || 0)
-              if (k === 'impacto') return Number(ds?.impacto || 0)
-              return 0
-            }
+                    const maxByKey = { animo: 6, gestion_emocional: 6, bienestar_fisico: 6, funcionamiento: 3 }
+        const calc = (k) => {
+          if (k === 'animo') return Number(ds?.animo || 0)
+          if (k === 'gestion_emocional') return Number(ds?.gestion_emocional || 0)
+          if (k === 'bienestar_fisico') return Number(ds?.bienestar_fisico || 0)
+          if (k === 'funcionamiento') return Number(ds?.funcionamiento || 0)
+          return 0
+        }
             const raw = Math.max(0, Math.min(maxByKey[this.domainKey] || 6, Number(calc(this.domainKey) || 0)))
             const sev = Math.round((raw / (maxByKey[this.domainKey] || 6)) * 100)
-            const isPositive = new Set(['animo', 'bienestar_fisico']).has(this.domainKey)
+            const isPositive = new Set(['animo', 'gestion_emocional', 'bienestar_fisico', 'funcionamiento']).has(this.domainKey)
             const display = isPositive ? (100 - sev) : sev
             baselineWellbeing = isPositive ? display : (100 - display)
           } catch (e) { /* ignore */ }
@@ -307,13 +307,13 @@ export default {
         // calcular wellbeing del dominio profundo
         const maxDeep = 45
         const severityPercent = Math.round((Math.max(0, Math.min(maxDeep, total)) / maxDeep) * 100)
-        const isPositive = new Set(['animo', 'bienestar_fisico']).has(this.domainKey)
+        const isPositive = new Set(['animo', 'gestion_emocional', 'bienestar_fisico', 'funcionamiento']).has(this.domainKey)
         const displayPercent = isPositive ? (100 - severityPercent) : severityPercent
         const wellbeingPercent = isPositive ? displayPercent : (100 - displayPercent)
         let relative = null
         if (typeof baselineWellbeing === 'number') {
           const delta = Number((wellbeingPercent - baselineWellbeing).toFixed(0))
-          const labelMap = { animo: 'Ánimo', ansiedad: 'Ansiedad', bienestar_fisico: 'Bienestar físico', impacto: 'Impacto' }
+          const labelMap = { animo: 'Ánimo positivo', gestion_emocional: 'Gestión emocional', bienestar_fisico: 'Bienestar físico', funcionamiento: 'Funcionamiento diario' }
           const domainLabel = labelMap[this.domainKey] || 'Dominio'
           const better = delta > 0
           const same = delta === 0

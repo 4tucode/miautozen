@@ -77,8 +77,8 @@
         <p class="mt-2 text-sm text-gray-600">
           Piensa en cómo te has sentido en las últimas 2 semanas. No hace falta ser exacto: elige la opción que mejor se acerque a tu caso.
         </p>
-        <p v-if="questions[currentIndex]?.domain === 'impacto'" class="mt-1 text-xs font-medium text-emerald-700">
-          Nota sobre Impacto: 0% de impacto es positivo (verde) porque indica que no hay interferencia en tu vida diaria.
+        <p v-if="questions[currentIndex]?.domain === 'funcionamiento'" class="mt-1 text-xs font-medium text-emerald-700">
+          Nota sobre Funcionamiento: 0% de interferencia es positivo (verde) porque indica que no hay problemas en tu vida diaria.
         </p>
 
         <!-- Opciones -->
@@ -105,6 +105,11 @@
               <span v-if="c.rangeHint" class="mt-1 block text-xs text-gray-500">(~{{ c.rangeHint }})</span>
             </span>
           </label>
+        </div>
+
+        <!-- Dominio de la pregunta -->
+        <div class="mt-3 text-center">
+          <span class="text-xs text-gray-500">Dominio: {{ DOMINIOS_LABEL[questions[currentIndex]?.domain] }}</span>
         </div>
 
         <!-- Botón opcional para omitir respuesta -->
@@ -150,6 +155,7 @@
 import { doc, getDoc, collection, addDoc } from 'firebase/firestore'
 
 import { db, auth, serverTimestamp } from '@/firebase'
+import { DOMINIOS_LABEL } from '@/utils/dominios'
 
 export default {
   name: 'AssessmentView',
@@ -182,9 +188,9 @@ export default {
       return Math.round(((this.currentIndex + 1) / this.totalQuestions) * 100)
     },
     showSupportHint() {
-      // pista si en ánimo bajo (q1) o impacto (q7) hay 2–3
+      // pista si en ánimo bajo (q1) o funcionamiento (q7) hay 2–3
       const idxQ1 = this.questions.findIndex(q => q.domain === 'animo')
-      const idxQ7 = this.questions.findIndex(q => q.domain === 'impacto')
+      const idxQ7 = this.questions.findIndex(q => q.domain === 'funcionamiento')
       const v1 = idxQ1 >= 0 ? this.answers[idxQ1] : 0
       const v7 = idxQ7 >= 0 ? this.answers[idxQ7] : 0
       return (v1 >= 2 || v7 >= 2)
@@ -211,12 +217,12 @@ export default {
         // Fallback local por si aún no has creado el doc
         this.questions = [
           { id: 'q1', domain: 'animo', text:'¿Te has sentido triste, decaído/a o sin esperanzas?' },
-          { id: 'q2', domain: 'anhedonia', text:'¿Has notado poco interés o disfrute por cosas que normalmente te gustan?' },
-          { id: 'q3', domain: 'ansiedad_control', text:'¿Te ha costado parar o controlar la preocupación?' },
-          { id: 'q4', domain: 'ansiedad_tension', text:'¿Te has sentido nervioso/a, en tensión o “con los nervios de punta”?' },
-          { id: 'q5', domain: 'sueno', text:'¿Has tenido problemas para dormir bien o para mantener el sueño?' },
-          { id: 'q6', domain: 'energia', text:'¿Te has sentido sin energía o con cansancio fácil?' },
-          { id: 'q7', domain: 'impacto', text:'¿Qué tanto han afectado estos problemas a tu vida diaria (familia, estudios/trabajo, tareas)?' }
+          { id: 'q2', domain: 'animo', text:'¿Has notado poco interés o disfrute por cosas que normalmente te gustan?' },
+          { id: 'q3', domain: 'gestion_emocional', text:'¿Te ha costado parar o controlar la preocupación?' },
+          { id: 'q4', domain: 'gestion_emocional', text:'¿Te has sentido nervioso/a, en tensión o "con los nervios de la punta"?' },
+          { id: 'q5', domain: 'bienestar_fisico', text:'¿Has tenido problemas para dormir bien o para mantener el sueño?' },
+          { id: 'q6', domain: 'bienestar_fisico', text:'¿Te has sentido sin energía o con cansancio fácil?' },
+          { id: 'q7', domain: 'funcionamiento', text:'¿Qué tanto han afectado estos problemas a tu vida diaria?' }
         ]
         this.totalQuestions = 7
       }
@@ -228,12 +234,12 @@ export default {
       // Fallback mínimo
       this.questions = [
         { id: 'q1', domain: 'animo', text:'¿Te has sentido triste, decaído/a o sin esperanzas?' },
-        { id: 'q2', domain: 'anhedonia', text:'¿Has notado poco interés o disfrute por cosas que normalmente te gustan?' },
-        { id: 'q3', domain: 'ansiedad_control', text:'¿Te ha costado parar o controlar la preocupación?' },
-        { id: 'q4', domain: 'ansiedad_tension', text:'¿Te has sentido nervioso/a, en tensión o “con los nervios de la punta”?' },
-        { id: 'q5', domain: 'sueno', text:'¿Has tenido problemas para dormir bien o para mantener el sueño?' },
-        { id: 'q6', domain: 'energia', text:'¿Te has sentido sin energía o con cansancio fácil?' },
-        { id: 'q7', domain: 'impacto', text:'¿Qué tanto han afectado estos problemas a tu vida diaria?' }
+        { id: 'q2', domain: 'animo', text:'¿Has notado poco interés o disfrute por cosas que normalmente te gustan?' },
+        { id: 'q3', domain: 'gestion_emocional', text:'¿Te ha costado parar o controlar la preocupación?' },
+        { id: 'q4', domain: 'gestion_emocional', text:'¿Te has sentido nervioso/a, en tensión o "con los nervios de la punta"?' },
+        { id: 'q5', domain: 'bienestar_fisico', text:'¿Has tenido problemas para dormir bien o para mantener el sueño?' },
+        { id: 'q6', domain: 'bienestar_fisico', text:'¿Te has sentido sin energía o con cansancio fácil?' },
+        { id: 'q7', domain: 'funcionamiento', text:'¿Qué tanto han afectado estos problemas a tu vida diaria?' }
       ]
       this.totalQuestions = 7
       this.answers = Array(7).fill(null)
@@ -275,7 +281,7 @@ export default {
       return this.submit()
     },
     calcDomainScores() {
-      // Suma por dominios: ánimo(1+2), ansiedad(3+4), sueño/energía(5+6), impacto(7)
+      // Suma por dominios: ánimo(1+2), gestión emocional(3+4), bienestar físico(5+6), funcionamiento(7)
       // Si una respuesta es null (omitida), se excluye del cálculo
       const map = {}
       this.questions.forEach((q, i) => {
@@ -286,10 +292,10 @@ export default {
         map[q.domain] = (map[q.domain] || 0) + v
       })
       const domainScores = {
-        animo: (map['animo'] || 0) + (map['anhedonia'] || 0),
-        ansiedad: (map['ansiedad_control'] || 0) + (map['ansiedad_tension'] || 0),
-        bienestar_fisico: (map['sueno'] || 0) + (map['energia'] || 0),
-        impacto: (map['impacto'] || 0)
+        animo: map['animo'] || 0,
+        gestion_emocional: map['gestion_emocional'] || 0,
+        bienestar_fisico: map['bienestar_fisico'] || 0,
+        funcionamiento: map['funcionamiento'] || 0
       }
       const total = Object.values(domainScores).reduce((a, b) => a + b, 0)
       return { domainScores, total }

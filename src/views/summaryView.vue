@@ -1,5 +1,6 @@
 <script>
 import { listarResultadosPorUsuario, obtenerResultadoPorId } from '@/services/db'
+import { calcularBienestarPorDominio, DOMINIOS_LABEL } from '@/utils/dominios'
 
 export default {
   name: 'SummaryView',
@@ -13,7 +14,7 @@ export default {
         { kind: 'intro' },
         { kind: 'total' },
         { kind: 'domains' },
-        { kind: 'impact' },
+        { kind: 'funcionamiento' },
         { kind: 'note' }
       ],
       deepByDomain: {},
@@ -22,7 +23,7 @@ export default {
         { id: 'intro', label: 'Introducción' },
         { id: 'puntuacion', label: 'Puntuación' },
         { id: 'dominios', label: 'Dominios' },
-        { id: 'impacto', label: 'Impacto' },
+        { id: 'funcionamiento', label: 'Funcionamiento diario' },
         { id: 'nota', label: 'Nota' }
       ],
       activeSection: 'intro',
@@ -35,12 +36,12 @@ export default {
     catBreakdown() {
       const out = []
       const labelByKey = {
-        animo: 'Ánimo',
-        ansiedad: 'Ansiedad',
+        animo: 'Ánimo positivo',
+        gestion_emocional: 'Gestión emocional',
         bienestar_fisico: 'Bienestar físico',
-        impacto: 'Impacto'
+        funcionamiento: 'Funcionamiento diario'
       }
-      const maxByKey = { animo: 6, ansiedad: 6, bienestar_fisico: 6, impacto: 3 }
+      const maxByKey = { animo: 6, gestion_emocional: 6, bienestar_fisico: 6, funcionamiento: 3 }
       const r = this.resultado || {}
       
       // Verificar que el resultado tenga datos válidos
@@ -81,38 +82,26 @@ export default {
         ds = tmp
       }
 
-      // Agrupar por dominios principales
+      // Agrupar por dominios principales usando la nueva lógica
       const values = {
-        animo: Number(ds?.animo || 0) + Number(ds?.anhedonia || 0),
-        ansiedad: Number(ds?.ansiedad || 0) + Number(ds?.ansiedad_control || 0) + Number(ds?.ansiedad_tension || 0),
-        bienestar_fisico: Number(ds?.bienestar_fisico || 0) + Number(ds?.sueno || 0) + Number(ds?.energia || 0),
-        impacto: Number(ds?.impacto || 0)
+        animo: Number(ds?.animo || 0),
+        gestion_emocional: Number(ds?.gestion_emocional || 0),
+        bienestar_fisico: Number(ds?.bienestar_fisico || 0),
+        funcionamiento: Number(ds?.funcionamiento || 0)
       }
       
       // Calcular porcentajes de bienestar (100% = bienestar máximo)
-      // IMPORTANTE: ansiedad, impacto Y ÁNIMO son inversos (0% = bien, 100% = mal)
-      // Solo bienestar físico es directo (0% = mal, 100% = bien)
-      const positiveOrientation = new Set(['bienestar_fisico']) // Solo bienestar físico es positivo
+      // IMPORTANTE: Todos los dominios son positivos (0% = mal, 100% = bien)
+      // Usar la nueva fórmula: (1 - (sum / max)) * 100
       
-      ;['animo', 'ansiedad', 'bienestar_fisico', 'impacto'].forEach(key => {
+      ;['animo', 'gestion_emocional', 'bienestar_fisico', 'funcionamiento'].forEach(key => {
         const max = maxByKey[key]
         const raw = Math.max(0, Math.min(max, Number(values[key] || 0)))
         
-        const isPositive = positiveOrientation.has(key)
-        let wellbeingPercent
-        
-        if (isPositive) {
-          // Solo bienestar físico: 100% = bienestar máximo, 0% = síntomas máximos
-          // Fórmula: (max - raw) / max * 100
-          // Ejemplo: si raw=0 (sin síntomas), wellbeingPercent=100% (bienestar máximo)
-          wellbeingPercent = Math.round(((max - raw) / max) * 100)
-        } else {
-          // Ánimo, ansiedad e impacto: 0% = bienestar máximo (sin síntomas), 100% = síntomas máximos
-          // Fórmula: (max - raw) / max * 100
-          // Ejemplo: si raw=0 (sin síntomas), wellbeingPercent=100% (bienestar máximo)
-          // Ejemplo: si raw=max (síntomas máximos), wellbeingPercent=0% (sin bienestar)
-          wellbeingPercent = Math.round(((max - raw) / max) * 100)
-        }
+        // Todos los dominios usan la misma fórmula positiva: (1 - (raw / max)) * 100
+        // Ejemplo: si raw=0 (sin síntomas), wellbeingPercent=100% (bienestar máximo)
+        // Ejemplo: si raw=max (síntomas máximos), wellbeingPercent=0% (sin bienestar)
+        const wellbeingPercent = Math.round((1 - (raw / max)) * 100)
         
         out.push({
           key,
@@ -122,7 +111,7 @@ export default {
           percent: wellbeingPercent, // Porcentaje de bienestar para mostrar
           wellbeingPercent, // Para colores/emoji
           baselineWellbeingPercent: wellbeingPercent,
-          orientation: isPositive ? 'positive' : 'negative'
+          orientation: 'positive' // Todos los dominios son positivos
         })
       })
 
@@ -131,22 +120,9 @@ export default {
       const withOverrides = out.map(c => {
         const override = overrides?.[c.key]
         if (override && typeof override.wellbeingPercent === 'number') {
-          // Para dominios negativos (ánimo, ansiedad, impacto), invertir el porcentaje
-          // porque 0% síntomas = 100% bienestar, 100% síntomas = 0% bienestar
-          // Para dominios positivos (solo bienestar físico), usar directamente el porcentaje
-          const isPositive = positiveOrientation.has(c.key)
-          let finalWellbeingPercent
-          
-          if (isPositive) {
-            // Solo bienestar físico: usar directamente el porcentaje del formulario de dominio
-            // Si el dominio profundo dice 33% bienestar, mostrar 33%
-            finalWellbeingPercent = override.wellbeingPercent
-          } else {
-            // Ánimo, ansiedad e impacto: invertir el porcentaje
-            // Si el dominio profundo dice 33% bienestar, significa 33% síntomas
-            // Por lo tanto, el bienestar real es 100% - 33% = 67%
-            finalWellbeingPercent = 100 - override.wellbeingPercent
-          }
+          // Todos los dominios son positivos, usar directamente el porcentaje
+          // Si el dominio profundo dice 33% bienestar, mostrar 33%
+          const finalWellbeingPercent = override.wellbeingPercent
           
           return { 
             ...c, 
@@ -238,14 +214,14 @@ export default {
     },
     domainBgClass(key) {
       if (key === 'animo') return 'from-amber-200/70 to-rose-200/60'
-      if (key === 'ansiedad') return 'from-rose-200/70 to-purple-200/60'
+              if (key === 'gestion_emocional') return 'from-rose-200/70 to-purple-200/60'
       if (key === 'bienestar_fisico') return 'from-emerald-200/70 to-teal-200/60'
       return 'from-purple-200/70 to-amber-200/60'
     },
     domainImage(key) {
       try {
         if (key === 'animo') return require('@/assets/zen1.png')
-        if (key === 'ansiedad') return require('@/assets/zen2.png')
+        if (key === 'gestion_emocional') return require('@/assets/zen2.png')
         if (key === 'bienestar_fisico') return require('@/assets/zen3.png')
       } catch (e) {
         // no-op
@@ -254,7 +230,7 @@ export default {
     },
     domainEmoji(key) {
       if (key === 'animo') return '🙂'
-      if (key === 'ansiedad') return '⚡'
+              if (key === 'gestion_emocional') return '⚡'
       if (key === 'bienestar_fisico') return '🌙'
       return '🎯'
     },
@@ -364,9 +340,9 @@ export default {
       const p = Number(c?.percent || 0) // porcentaje mostrado
       const domainDescByKey = {
         animo: 'estado de ánimo bajo y pérdida de interés',
-        ansiedad: 'preocupación, tensión o nerviosismo',
+        gestion_emocional: 'preocupación, tensión o nerviosismo',
         bienestar_fisico: 'sueño y energía (descanso, cansancio, fatiga)',
-        impacto: 'interferencia en tus actividades diarias'
+        funcionamiento: 'interferencia en tus actividades diarias'
       }
       const domainDesc = domainDescByKey[c?.key] || 'este dominio'
       
@@ -425,9 +401,9 @@ export default {
       if (this.hasDeepResultFor(c?.key)) return `Ver diagnóstico de ${c.label.toLowerCase()}`
       const map = {
         animo: 'Saber más sobre tu ánimo',
-        ansiedad: 'Saber más sobre tu ansiedad',
+        gestion_emocional: 'Saber más sobre tu gestión emocional',
         bienestar_fisico: 'Saber más sobre tu bienestar físico',
-        impacto: 'Saber más sobre tu impacto'
+        funcionamiento: 'Saber más sobre tu funcionamiento diario'
       }
       return map[c?.key] || 'Saber más de este dominio'
     },
@@ -901,10 +877,10 @@ export default {
             </div>
             <div class="pt-2 text-xs text-gray-600">
               Fórmula bienestar general =
-              <template v-if="explainDomain?.key==='animo'">100 − ( (ánimo + anhedonia) / 6 × 100 )</template>
-              <template v-else-if="explainDomain?.key==='ansiedad'">100 − ( (ansiedad + ansiedad_control + ansiedad_tension) / 6 × 100 )</template>
-              <template v-else-if="explainDomain?.key==='bienestar_fisico'">100 − ( (bienestar_fisico + sueño + energía) / 6 × 100 )</template>
-              <template v-else>100 − ( (impacto) / 3 × 100 )</template>
+                              <template v-if="explainDomain?.key==='animo'">100 − ( (ánimo) / 6 × 100 )</template>
+              <template v-else-if="explainDomain?.key==='gestion_emocional'">100 − ( (gestion_emocional) / 6 × 100 )</template>
+                              <template v-else-if="explainDomain?.key==='bienestar_fisico'">100 − ( (bienestar_fisico) / 6 × 100 )</template>
+                              <template v-else>100 − ( (funcionamiento) / 3 × 100 )</template>
             </div>
             <div v-if="explainDomain?.deepWellbeingPercent !== undefined" class="text-xs text-gray-600">
               Fórmula bienestar “Saber más” = 100 − ( total_dom / 45 × 100 )
@@ -1007,7 +983,7 @@ export default {
                   <div class="flex items-center gap-3">
                     <span
                       class="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-200 text-amber-800 text-3xl">🙂</span>
-                    <h4 class="text-2xl md:text-3xl font-extrabold text-gray-900">Ánimo</h4>
+                    <h4 class="text-2xl md:text-3xl font-extrabold text-gray-900">Ánimo Positivo</h4>
                   </div>
                   <p class="mt-3 text-lg md:text-xl text-gray-800">Estado de ánimo bajo y pérdida de interés.</p>
                 </div>
@@ -1015,7 +991,7 @@ export default {
                   <div class="flex items-center gap-3">
                     <span
                       class="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-200 text-rose-800 text-3xl">⚡</span>
-                    <h4 class="text-2xl md:text-3xl font-extrabold text-gray-900">Ansiedad</h4>
+                    <h4 class="text-2xl md:text-3xl font-extrabold text-gray-900">Gestión Emocional</h4>
                   </div>
                   <p class="mt-3 text-lg md:text-xl text-gray-800">Preocupación constante, tensión o nerviosismo.</p>
                 </div>
@@ -1031,7 +1007,7 @@ export default {
                   <div class="flex items-center gap-3">
                     <span
                       class="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-purple-200 text-purple-800 text-3xl">🎯</span>
-                    <h4 class="text-2xl md:text-3xl font-extrabold text-gray-900">Impacto</h4>
+                    <h4 class="text-2xl md:text-3xl font-extrabold text-gray-900">Funcionamiento Diario</h4>
                   </div>
                   <p class="mt-3 text-lg md:text-xl text-gray-800">Cómo afecta a estudios/trabajo, familia y tareas.</p>
                 </div>

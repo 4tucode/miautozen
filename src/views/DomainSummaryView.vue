@@ -17,7 +17,7 @@ export default {
   },
   computed: {
     domainLabel() {
-      const map = { animo: 'Ánimo', ansiedad: 'Ansiedad', bienestar_fisico: 'Bienestar físico', impacto: 'Impacto' }
+      const map = { animo: 'Ánimo positivo', gestion_emocional: 'Gestión emocional', bienestar_fisico: 'Bienestar físico', funcionamiento: 'Funcionamiento diario' }
       return map[this.domainKey] || 'Dominio'
     },
     percent() {
@@ -25,8 +25,8 @@ export default {
       // Máximo por formulario de 15 preguntas con escala 0-3 => 45
       const max = 45
       const total = Number(this.result?.puntuacion || this.result?.total || 0)
-      // Para dominios negativos (ansiedad/impacto), 100% = peor; mostramos bienestar (invertido)
-      const negative = new Set(['ansiedad', 'impacto'])
+      // Todos los dominios son positivos (100% = mejor bienestar)
+      const negative = new Set([])
       const rawPercent = Math.round((Math.max(0, Math.min(max, total)) / max) * 100)
       return negative.has(this.domainKey) ? (100 - rawPercent) : rawPercent
     },
@@ -63,7 +63,7 @@ export default {
             'Comparte tus avances con alguien de apoyo.'
           ]
         },
-        ansiedad: {
+        gestion_emocional: {
           bajo: [
             'Prueba la técnica 4-7-8 de respiración antes de dormir.',
             'Reduce cafeína por la tarde.',
@@ -97,7 +97,7 @@ export default {
             'Ajusta tu entorno para favorecer el descanso (luz, ruido, temperatura).'
           ]
         },
-        impacto: {
+        funcionamiento: {
           bajo: [
             'Divide tareas grandes en pasos muy pequeños.',
             'Usa la técnica de 2 minutos para comenzar.',
