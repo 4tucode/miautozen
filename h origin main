@@ -1,0 +1,10 @@
+[33m2cd31ee[m[33m ([m[1;36mHEAD -> [m[1;32mmain[m[33m)[m Merge branch 'develop'
+[33m3467217[m[33m ([m[1;32mdevelop[m[33m)[m Merge branch 'feat/Nueva-version-de-dominios' into develop
+[33mac6b35c[m[33m ([m[1;32mfeat/Nueva-version-de-dominios[m[33m)[m feat: implementar mejoras en dominios, UI y funcionalidad - Refactor completo de lógica de dominios con 4 dominios positivos - Mejoras en SummaryView con validación robusta de resultados - Filtrado de resultados de dominio en ResultsView - Estilos modernos en FooterLegal y FooterBar con scroll suave - Optimización de ResourcesView con aside adaptativo y animaciones - Hero section en HelpView con filtros de color cálidos - Altura uniforme en tarjetas profesionales - Eliminación de elementos innecesarios en DomainSummaryView - Corrección de cálculo de porcentajes de bienestar
+[33m9516fb4[m feat(terms): implement modern Tailwind design with gradient background and card layout
+[33m85947ad[m CAMBIOS EN LOS DOMINIOS
+[33ma25ab17[m feat(assessment): implement domain indicators with fallback system
+[33mf425368[m refactor(domains): replace logic with 4 positive domains and helper
+[33m3d989d8[m[33m ([m[1;31morigin/feature/improve-domains-section[m[33m, [m[1;32mfeature/improve-domains-section[m[33m)[m CAMBIOS EN LA RAMA DE DOMINIOS
+[33m67db239[m feat(domains): implementar mejoras visuales y UX en sección de dominios - barras de progreso, comparación visual, tooltips, indicadores de navegación y accesibilidad mejorada
+[33mcdd97ab[m feat(domains): crear rama para mejorar sección de dominios en summaryView - preparar implementación de mejoras visuales, responsive y accesibilidad
