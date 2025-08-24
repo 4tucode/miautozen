@@ -31,6 +31,15 @@
           <span class="bg-gradient-to-r from-purple-800 to-purple-400 bg-clip-text text-transparent">Autoevaluación</span>
         </h1>
         <p class="mt-1 text-sm text-gray-600">Periodo de referencia: {{ scalePeriod }}</p>
+                 <!-- Dominio actual -->
+         <div v-if="isDataReady" class="mt-2">
+           <div class="inline-flex items-center gap-2 px-2 py-1 rounded-md text-xs font-medium"
+                :class="`bg-gradient-to-r ${currentDomainStyle.bg} ${currentDomainStyle.border} ${currentDomainStyle.text}`">
+             <div class="w-1.5 h-1.5 rounded-full"
+                  :class="`bg-gradient-to-r ${currentDomainStyle.dot}`"></div>
+             {{ dominiosLabel[questions[currentIndex].domain] || 'Cargando...' }}
+           </div>
+         </div>
       </div>
       <div class="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white/80 px-3 py-1 text-sm font-medium text-gray-700 shadow-sm">
         <span class="h-2 w-2 rounded-full bg-gradient-to-r from-purple-800 to-purple-400"></span>
@@ -40,27 +49,46 @@
 
     <!-- Stepper -->
     <nav class="mt-6 flex justify-center gap-2" aria-label="Progreso">
-      <span
+      <div
         v-for="(q, i) in questions"
         :key="q.id"
-        class="h-2 w-2 rounded-full bg-gray-300 transition-transform duration-200 ease-out"
-        :class="i <= currentIndex ? 'bg-gradient-to-r from-purple-800 to-purple-400 scale-110' : ''"
+        class="relative group"
         :aria-label="`Pregunta ${i+1} de ${totalQuestions}`"
-      ></span>
+      >
+        <span
+          class="h-2 w-2 rounded-full transition-all duration-200 ease-out cursor-pointer"
+          :class="i <= currentIndex ? 'bg-gradient-to-r from-purple-800 to-purple-400 scale-110' : 'bg-gray-300'"
+        ></span>
+                 <!-- Tooltip del dominio -->
+         <div v-if="dominiosLabel && q.domain" class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs font-medium text-white bg-gray-800 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
+           {{ dominiosLabel[q.domain] }}
+           <div class="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-800"></div>
+         </div>
+      </div>
     </nav>
 
     <!-- Barra de progreso -->
-    <div
-      class="mt-6 h-2 w-full rounded-full bg-gray-200"
-      role="progressbar"
-      :aria-valuenow="progressPercent"
-      :aria-valuemin="0"
-      :aria-valuemax="100"
-    >
+    <div class="mt-6">
       <div
-        class="h-full rounded-full bg-gradient-to-r from-purple-800 to-purple-400 transition-[width] duration-300 ease-out"
-        :style="{ width: progressPercent + '%' }"
-      ></div>
+        class="h-2 w-full rounded-full bg-gray-200 relative overflow-hidden"
+        role="progressbar"
+        :aria-valuenow="progressPercent"
+        :aria-valuemin="0"
+        :aria-valuemax="100"
+      >
+        <div
+          class="h-full rounded-full bg-gradient-to-r from-purple-800 to-purple-400 transition-[width] duration-300 ease-out"
+          :style="{ width: progressPercent + '%' }"
+        ></div>
+      </div>
+             <!-- Indicadores de dominio en la barra -->
+       <div v-if="isDataReady" class="mt-2 flex justify-between text-xs text-gray-500">
+         <span v-for="(q, i) in questions" :key="q.id" 
+               class="flex-1 text-center truncate px-1"
+               :class="i === currentIndex ? 'font-semibold text-purple-600' : ''">
+                       {{ dominiosLabel[q.domain] }}
+         </span>
+       </div>
     </div>
 
     <!-- Tarjeta de pregunta con transición -->
@@ -107,10 +135,18 @@
           </label>
         </div>
 
-        <!-- Dominio de la pregunta -->
-        <div class="mt-3 text-center">
-          <span class="text-xs text-gray-500">Dominio: {{ DOMINIOS_LABEL[questions[currentIndex]?.domain] }}</span>
-        </div>
+                 <!-- Indicador de dominio -->
+         <div v-if="isDataReady" class="mt-4 flex items-center justify-center">
+           <div class="inline-flex items-center gap-2 px-3 py-2 rounded-full border"
+                :class="`bg-gradient-to-r ${currentDomainStyle.bg} ${currentDomainStyle.border}`">
+             <div class="w-2 h-2 rounded-full"
+                  :class="`bg-gradient-to-r ${currentDomainStyle.dot}`"></div>
+             <span class="text-sm font-medium"
+                   :class="currentDomainStyle.text">
+                               {{ dominiosLabel[questions[currentIndex].domain] }}
+             </span>
+           </div>
+         </div>
 
         <!-- Botón opcional para omitir respuesta -->
         <div v-if="allowSkip" class="mt-2">
@@ -155,7 +191,16 @@
 import { doc, getDoc, collection, addDoc } from 'firebase/firestore'
 
 import { db, auth, serverTimestamp } from '@/firebase'
+// eslint-disable-next-line no-unused-vars
 import { DOMINIOS_LABEL } from '@/utils/dominios'
+
+// Fallback local por si la importación falla
+const FALLBACK_DOMINIOS_LABEL = {
+  animo: 'Ánimo positivo',
+  gestion_emocional: 'Gestión emocional',
+  bienestar_fisico: 'Bienestar físico',
+  funcionamiento: 'Funcionamiento diario',
+}
 
 export default {
   name: 'AssessmentView',
@@ -194,6 +239,46 @@ export default {
       const v1 = idxQ1 >= 0 ? this.answers[idxQ1] : 0
       const v7 = idxQ7 >= 0 ? this.answers[idxQ7] : 0
       return (v1 >= 2 || v7 >= 2)
+    },
+    currentDomainStyle() {
+      const domain = this.questions[this.currentIndex]?.domain
+      if (!domain) return {}
+      
+      const styles = {
+        animo: {
+          bg: 'from-amber-100 to-orange-100',
+          border: 'border-amber-200',
+          dot: 'from-amber-500 to-orange-500',
+          text: 'text-amber-700'
+        },
+        gestion_emocional: {
+          bg: 'from-rose-100 to-pink-100',
+          border: 'border-rose-200',
+          dot: 'from-rose-500 to-pink-500',
+          text: 'text-rose-700'
+        },
+        bienestar_fisico: {
+          bg: 'from-emerald-100 to-teal-100',
+          border: 'border-emerald-200',
+          dot: 'from-emerald-500 to-teal-500',
+          text: 'text-emerald-700'
+        },
+        funcionamiento: {
+          bg: 'from-purple-100 to-indigo-100',
+          border: 'border-purple-200',
+          dot: 'from-purple-500 to-indigo-500',
+          text: 'text-purple-700'
+        }
+      }
+      
+      return styles[domain] || styles.funcionamiento
+    },
+    isDataReady() {
+      return this.questions.length > 0 && this.questions[this.currentIndex] && this.dominiosLabel
+    },
+    dominiosLabel() {
+      // Usa la importación si está disponible, sino el fallback
+      return DOMINIOS_LABEL || FALLBACK_DOMINIOS_LABEL
     }
   },
   async created() {
