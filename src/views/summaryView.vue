@@ -1,5 +1,6 @@
 <script>
 import { listarResultadosPorUsuario, obtenerResultadoPorId } from '@/services/db'
+import { calcularBienestarPorDominio, DOMINIOS_LABEL } from '@/utils/dominios'
 
 export default {
   name: 'SummaryView',
@@ -13,7 +14,7 @@ export default {
         { kind: 'intro' },
         { kind: 'total' },
         { kind: 'domains' },
-        { kind: 'impact' },
+        { kind: 'funcionamiento' },
         { kind: 'note' }
       ],
       deepByDomain: {},
@@ -22,86 +23,156 @@ export default {
         { id: 'intro', label: 'Introducción' },
         { id: 'puntuacion', label: 'Puntuación' },
         { id: 'dominios', label: 'Dominios' },
-        { id: 'impacto', label: 'Impacto' },
+        { id: 'funcionamiento', label: 'Funcionamiento diario' },
         { id: 'nota', label: 'Nota' }
       ],
       activeSection: 'intro',
       interpretObserver: null
       , explainOpen: false
-      , explainDomain: null
+      , explainDomain: null,
+      // Definir las preguntas para usar con calcularBienestarPorDominio
+      questions: [
+        { id: 'q1', domain: 'animo', text:'¿Te has sentido triste, decaído/a o sin esperanzas?' },
+        { id: 'q2', domain: 'animo', text:'¿Has notado poco interés o disfrute por cosas que normalmente te gustan?' },
+        { id: 'q3', domain: 'gestion_emocional', text:'¿Te ha costado parar o controlar la preocupación?' },
+        { id: 'q4', domain: 'gestion_emocional', text:'¿Te has sentido nervioso/a, en tensión o "con los nervios de la punta"?' },
+        { id: 'q5', domain: 'bienestar_fisico', text:'¿Has tenido problemas para dormir bien o para mantener el sueño?' },
+        { id: 'q6', domain: 'bienestar_fisico', text:'¿Te has sentido sin energía o con cansancio fácil?' },
+        { id: 'q7', domain: 'funcionamiento', text:'¿Qué tanto han afectado estos problemas a tu vida diaria?' }
+      ]
     }
   },
   computed: {
     catBreakdown() {
       const out = []
-      const labelByKey = {
-        animo: 'Ánimo',
-        ansiedad: 'Ansiedad',
-        bienestar_fisico: 'Bienestar físico',
-        impacto: 'Impacto'
-      }
-      const maxByKey = { animo: 6, ansiedad: 6, bienestar_fisico: 6, impacto: 3 }
+      // Usar DOMINIOS_LABEL importado en lugar de labelByKey local
       const r = this.resultado || {}
-      let ds = r.domainScores
-      if (!ds) {
-        // calcular desde answers/respuestas para el formulario actual
-        const answers = Array.isArray(r.answers)
-          ? r.answers
-          : Array.isArray(r.respuestas)
-            ? r.respuestas.map(x => ({ domain: x.dominio, value: x.valor }))
-            : []
-        const tmp = {}
-        answers.forEach(a => {
-          const k = a.domain
-          const v = Number(a.value || 0)
-          if (!k) return
-          tmp[k] = (tmp[k] || 0) + v
+      
+      // Debug: mostrar el resultado que se está procesando
+      console.log('Procesando resultado en catBreakdown:', {
+        id: r.id,
+        formId: r.formId,
+        hasRespuestas: Array.isArray(r.respuestas),
+        hasAnswers: Array.isArray(r.answers),
+        puntuacion: r.puntuacion,
+        total: r.total,
+        respuestasLength: r.respuestas?.length,
+        answersLength: r.answers?.length
+      })
+      
+      // Verificar que el resultado tenga datos válidos
+      if (!r || !r.id || Object.keys(r).length === 0) {
+        console.warn('catBreakdown: resultado inválido o vacío')
+        return out
+      }
+      
+      // Crear mapa de respuestas para usar con calcularBienestarPorDominio
+      const respuestas = {}
+      
+      // Intentar obtener respuestas del resultado
+      if (Array.isArray(r.respuestas)) {
+        // Formato antiguo: respuestas como array de objetos
+        r.respuestas.forEach(resp => {
+          if (resp && resp.id && resp.valor !== null && resp.valor !== undefined) {
+            respuestas[resp.id] = Number(resp.valor)
+          }
         })
-        ds = tmp
+      } else if (Array.isArray(r.answers)) {
+        // Formato nuevo: answers como array de objetos
+        r.answers.forEach(ans => {
+          if (ans && ans.id && ans.value !== null && ans.value !== undefined) {
+            respuestas[ans.id] = Number(ans.value)
+          }
+        })
       }
-      const values = {
-        animo: Number(ds?.animo || 0) + Number(ds?.anhedonia || 0),
-        ansiedad: Number(ds?.ansiedad || 0) + Number(ds?.ansiedad_control || 0) + Number(ds?.ansiedad_tension || 0),
-        bienestar_fisico: Number(ds?.bienestar_fisico || 0) + Number(ds?.sueno || 0) + Number(ds?.energia || 0),
-        impacto: Number(ds?.impacto || 0)
-      }
-      const positiveOrientation = new Set(['animo', 'bienestar_fisico']) // 100% es bueno
-        ;['animo', 'ansiedad', 'bienestar_fisico', 'impacto'].forEach(key => {
-          const max = maxByKey[key]
-          const raw = Math.max(0, Math.min(max, Number(values[key] || 0)))
-          const severityPercent = Math.round((raw / max) * 100) // 100% = más síntomas/impacto
-          const isPositive = positiveOrientation.has(key)
-          const displayPercent = isPositive ? (100 - severityPercent) : severityPercent
-          const wellbeingPercent = isPositive ? displayPercent : (100 - displayPercent)
-          out.push({
-            key,
-            label: labelByKey[key],
-            value: raw,
-            max,
-            // Mostrar: para 'impacto' y 'ansiedad' enseñamos señales directas (0% = buen estado, 100% = peor)
-            percent: ((key === 'impacto' || key === 'ansiedad') ? severityPercent : wellbeingPercent),
-            wellbeingPercent,        // para colores/emoji (alto = verde)
-            baselineWellbeingPercent: wellbeingPercent,
-            orientation: isPositive ? 'positive' : 'negative'
+      
+      // Debug: mostrar las respuestas procesadas
+      console.log('Respuestas procesadas:', respuestas)
+      console.log('Preguntas disponibles:', this.questions)
+      
+      // Verificar que tengamos respuestas válidas antes de calcular
+      const hasValidRespuestas = Object.keys(respuestas).length > 0
+      if (!hasValidRespuestas) {
+        console.warn('catBreakdown: no hay respuestas válidas, usando puntuación total como fallback')
+        
+        // Fallback: si no hay respuestas pero sí puntuación, calcular porcentaje global
+        const total = Number(r?.puntuacion || r?.total || 0)
+        if (total > 0) {
+          // Calcular porcentaje global basado en la puntuación total (0-21 puntos)
+          const globalPercent = Math.max(0, Math.min(100, Math.round((1 - (total / 21)) * 100)))
+          
+          // Asignar el mismo porcentaje a todos los dominios como fallback
+          Object.keys(DOMINIOS_LABEL).forEach(key => {
+            out.push({
+              key,
+              label: DOMINIOS_LABEL[key],
+              value: 0,
+              max: 0,
+              percent: globalPercent,
+              wellbeingPercent: globalPercent,
+              baselineWellbeingPercent: globalPercent,
+              orientation: 'positive',
+              isFallback: true
+            })
           })
+          
+          console.log('Usando fallback con porcentaje global:', globalPercent)
+          return out.sort((a, b) => Number(a.wellbeingPercent || 0) - Number(b.wellbeingPercent || 0))
+        }
+      }
+      
+      // Calcular porcentajes de bienestar usando la función helper
+      const dominiosPct = calcularBienestarPorDominio(this.questions, respuestas)
+      
+      // Debug: mostrar los porcentajes calculados
+      console.log('Porcentajes calculados:', dominiosPct)
+      
+      // Crear array de resultados para cada dominio
+      Object.entries(dominiosPct).forEach(([key, percent]) => {
+        out.push({
+          key,
+          label: DOMINIOS_LABEL[key],
+          value: 0, // No necesitamos el valor raw para la nueva lógica
+          max: 0, // No necesitamos el max para la nueva lógica
+          percent: percent,
+          wellbeingPercent: percent,
+          baselineWellbeingPercent: percent,
+          orientation: 'positive' // Todos los dominios son positivos
         })
-      // Overrides desde formularios de dominio DE ESTE RESULTADO (sin usar antiguos)
+      })
+
+      // Aplicar overrides desde formularios de dominio si existen
       const overrides = r?.overrides || {}
       const withOverrides = out.map(c => {
         const override = overrides?.[c.key]
         if (override && typeof override.wellbeingPercent === 'number') {
-          const p = Number(override.wellbeingPercent)
-          const finalWellbeing = p
-          const displayForChip = ((c.key === 'impacto' || c.key === 'ansiedad') ? (100 - p) : p)
-          return { ...c, percent: displayForChip, wellbeingPercent: p, deepWellbeingPercent: p, deepTotal: Number(override.total || 0), deepResultId: override.resultId || null, finalWellbeingPercent: finalWellbeing, overriddenByDeep: true, overrideSource: 'parent' }
+          // Todos los dominios son positivos, usar directamente el porcentaje
+          // Si el dominio profundo dice 33% bienestar, mostrar 33%
+          const finalWellbeingPercent = override.wellbeingPercent
+          
+          return { 
+            ...c, 
+            percent: finalWellbeingPercent, 
+            wellbeingPercent: finalWellbeingPercent, 
+            deepWellbeingPercent: override.wellbeingPercent, // porcentaje original del dominio profundo
+            deepTotal: Number(override.total || 0), 
+            deepResultId: override.resultId || null, 
+            finalWellbeingPercent: finalWellbeingPercent, 
+            overriddenByDeep: true, 
+            overrideSource: 'parent' 
+          }
         }
         return c
       })
-      const withFinal = withOverrides.map(c => (
-        typeof c.finalWellbeingPercent === 'number'
-          ? c
-          : { ...c, finalWellbeingPercent: c.baselineWellbeingPercent }
-      ))
+
+      const withFinal = withOverrides.map(c => ({
+        ...c,
+        finalWellbeingPercent: c.finalWellbeingPercent || c.baselineWellbeingPercent
+      }))
+
+      // Debug: mostrar el resultado final
+      console.log('Resultado final catBreakdown:', withFinal)
+
       return withFinal.sort((a, b) => Number(a.wellbeingPercent || 0) - Number(b.wellbeingPercent || 0))
     },
     globalWellbeingPercent() {
@@ -112,13 +183,35 @@ export default {
     },
     generalTotal() {
       const r = this.resultado || {}
-      const raw = Number(r?.puntuacion || r?.total || 0)
+      // Verificar que el resultado tenga datos válidos
+      if (!r || !r.id || Object.keys(r).length === 0) {
+        return 0
+      }
       // El formulario general tiene máximo 21 puntos (7 ítems x 0–3)
+      const raw = Number(r?.puntuacion || r?.total || 0)
       const clamped = Math.max(0, Math.min(21, raw))
+      
       return clamped
     }
   },
   methods: {
+    formatDateTime(ts) {
+      try {
+        let d = null
+        if (!ts) return '—'
+        if (typeof ts?.toDate === 'function') {
+          d = ts.toDate()
+        } else if (typeof ts === 'object' && typeof ts?.seconds === 'number') {
+          d = new Date(ts.seconds * 1000)
+        } else if (typeof ts === 'string' || typeof ts === 'number' || ts instanceof Date) {
+          d = new Date(ts)
+        }
+        if (!d || Number.isNaN(d.getTime())) return '—'
+        return new Intl.DateTimeFormat('es-ES', { year: 'numeric', month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' }).format(d)
+      } catch (e) {
+        return '—'
+      }
+    },
     slideBg(kind) {
       try {
         if (kind === 'intro') return require('@/assets/fondo.jpg')
@@ -150,14 +243,14 @@ export default {
     },
     domainBgClass(key) {
       if (key === 'animo') return 'from-amber-200/70 to-rose-200/60'
-      if (key === 'ansiedad') return 'from-rose-200/70 to-purple-200/60'
+              if (key === 'gestion_emocional') return 'from-rose-200/70 to-purple-200/60'
       if (key === 'bienestar_fisico') return 'from-emerald-200/70 to-teal-200/60'
       return 'from-purple-200/70 to-amber-200/60'
     },
     domainImage(key) {
       try {
         if (key === 'animo') return require('@/assets/zen1.png')
-        if (key === 'ansiedad') return require('@/assets/zen2.png')
+        if (key === 'gestion_emocional') return require('@/assets/zen2.png')
         if (key === 'bienestar_fisico') return require('@/assets/zen3.png')
       } catch (e) {
         // no-op
@@ -166,7 +259,7 @@ export default {
     },
     domainEmoji(key) {
       if (key === 'animo') return '🙂'
-      if (key === 'ansiedad') return '⚡'
+              if (key === 'gestion_emocional') return '⚡'
       if (key === 'bienestar_fisico') return '🌙'
       return '🎯'
     },
@@ -212,46 +305,39 @@ export default {
         // no-op
       }
     },
-    badgeClass(wellbeingPercent) {
-      const p = Number(wellbeingPercent || 0)
-      if (p >= 67) {
-        return 'text-emerald-700 bg-emerald-50 border border-emerald-200'
-      }
-      if (p >= 34) {
-        return 'text-purple-700 bg-purple-50 border border-purple-200'
-      }
+    badgeClass(domain) {
+      const p = Number(domain?.percent || 0)
+      
+      // TODOS los dominios son positivos: 0% = malestar máximo (rojo), 100% = bienestar máximo (verde)
+      if (p >= 67) return 'text-emerald-700 bg-emerald-50 border border-emerald-200'
+      if (p >= 34) return 'text-purple-700 bg-purple-50 border border-purple-200'
       return 'text-rose-700 bg-rose-50 border border-rose-200'
     },
-    emojiForPercent(wellbeingPercent) {
-      const p = Number(wellbeingPercent || 0)
+    emojiForPercent(domain) {
+      const p = Number(domain?.percent || 0)
+      // TODOS los dominios son positivos: 0% = malestar máximo (☹️), 100% = bienestar máximo (😊)
       if (p >= 67) return '😊'
       if (p >= 34) return '😐'
       return '☹️'
     },
     explanationFor(c) {
       const p = Number(c?.percent || 0) // porcentaje mostrado
-      const domainDescByKey = {
-        animo: 'estado de ánimo bajo y pérdida de interés',
-        ansiedad: 'preocupación, tensión o nerviosismo',
-        bienestar_fisico: 'sueño y energía (descanso, cansancio, fatiga)',
-        impacto: 'interferencia en tus actividades diarias'
-      }
-      const domainDesc = domainDescByKey[c?.key] || 'este dominio'
-      // Mensajes adaptados por orientación
-      if (c.orientation === 'positive') {
-        let nivel = 'bajo', detalle = 'podría mejorar', sugerencia = 'pequeños hábitos pueden ayudar'
-        if (p > 66) { nivel = 'alto'; detalle = 'muy buen estado'; sugerencia = 'sigue cuidando tus rutinas' }
-        else if (p > 33) { nivel = 'moderado'; detalle = 'estado aceptable'; sugerencia = 'consolida tus hábitos saludables' }
-        return `Tienes un ${p}% en ${c.label} (${nivel}): ${detalle}; ${sugerencia}.`
-      } else {
-        let nivel = 'bajo', detalle = 'señales leves', sugerencia = 'estás cerca de tu bienestar'
-        if (p > 66) { nivel = 'alto'; detalle = 'señales elevadas'; sugerencia = 'considera buscar apoyo si persiste' }
-        else if (p > 33) { nivel = 'moderado'; detalle = 'señales moderadas'; sugerencia = 'cuidar hábitos y rutinas puede ayudar' }
-        return `Tienes un ${p}% en ${c.label} (${nivel}): ${detalle} de ${domainDesc}; ${sugerencia}.`
-      }
+      // Descripción de dominios para contexto
+      
+      // TODOS los dominios son positivos: 0% = malestar máximo, 100% = bienestar máximo
+      let nivel = 'bajo', detalle = 'podría mejorar', sugerencia = 'pequeños hábitos pueden ayudar'
+      if (p > 66) { nivel = 'alto'; detalle = 'muy buen estado'; sugerencia = 'sigue cuidando tus rutinas' }
+      else if (p > 33) { nivel = 'moderado'; detalle = 'estado aceptable'; sugerencia = 'consolida tus hábitos saludables' }
+      
+      return `Tienes un ${p}% en ${c.label} (${nivel}): ${detalle}; ${sugerencia}.`
     },
     isDomainRed(c) {
-      return Number(c?.wellbeingPercent || 0) < 34
+      // Usar el porcentaje de bienestar calculado (percent)
+      const p = Number(c?.percent || 0)
+      
+      // TODOS los dominios son positivos: 0% = malestar máximo (rojo), 100% = bienestar máximo (verde)
+      // Rojo si el bienestar es bajo (< 34%)
+      return p < 34
     },
     hasDeepResultFor(key) {
       return Boolean(this.deepByDomain[key])
@@ -260,16 +346,29 @@ export default {
       if (this.hasDeepResultFor(c?.key)) return `Ver diagnóstico de ${c.label.toLowerCase()}`
       const map = {
         animo: 'Saber más sobre tu ánimo',
-        ansiedad: 'Saber más sobre tu ansiedad',
+        gestion_emocional: 'Saber más sobre tu gestión emocional',
         bienestar_fisico: 'Saber más sobre tu bienestar físico',
-        impacto: 'Saber más sobre tu impacto'
+        funcionamiento: 'Saber más sobre tu funcionamiento diario'
       }
       return map[c?.key] || 'Saber más de este dominio'
     },
     domainActionTarget(c) {
       if (!this.isDomainRed(c)) return null
       const fromResultId = this.resultado?.id || ''
-      return { name: 'domain-assessment', params: { domain: c?.key }, query: (fromResultId ? { fromResultId } : {}) }
+      return { 
+        name: 'domain-assessment', 
+        params: { domain: c?.key }, 
+        query: (fromResultId ? { fromResultId } : {}),
+        onComplete: () => {
+          // Scroll suave a la parte superior después de la navegación
+          this.$nextTick(() => {
+            window.scrollTo({
+              top: 0,
+              behavior: 'smooth'
+            })
+          })
+        }
+      }
     },
     scrollToSection(id) {
       try {
@@ -378,7 +477,6 @@ export default {
         const ts = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')
         pdf.save(`MiAutoZen-Resumen-${ts}.pdf`)
       } catch (e) {
-        // eslint-disable-next-line no-console
         console.error(e)
         window.print && window.print()
       }
@@ -391,38 +489,135 @@ export default {
       this.explainOpen = false
       this.explainDomain = null
     }
+    , navigateToDomain(c) {
+      if (this.hasDeepResultFor(c?.key)) {
+        this.$router.push({ name: 'domain-summary', params: { domain: c.key }, query: { resultId: this.deepByDomain[c.key].resultId, fromResultId: this.resultado?.id || undefined } })
+      } else {
+        this.$router.push({ name: 'domain-assessment', params: { domain: c.key }, query: { fromResultId: this.resultado?.id || undefined } })
+      }
+      this.$nextTick(() => {
+        window.scrollTo({
+          top: 0,
+          behavior: 'smooth'
+        })
+      })
+    },
+    backToSummaryLink() {
+      const fromResultId = this.$route.query.fromResultId
+      return fromResultId
+        ? { name: 'assessment-summary', query: { resultId: fromResultId } }
+        : { name: 'assessment-summary' }
+    },
+    isValidResult(result) {
+      // Verificar que el resultado tenga un ID y sea del usuario correcto
+      if (!result?.id || !result?.usuarioId) {
+        console.warn('isValidResult: resultado sin ID o usuarioId', { id: result?.id, usuarioId: result?.usuarioId })
+        return false
+      }
+      
+      // Verificar que tenga respuestas válidas (ser más flexible)
+      const hasValidRespuestas = Array.isArray(result.respuestas) && 
+        result.respuestas.length > 0 && 
+        result.respuestas.some(r => r && r.id && (r.valor !== null && r.valor !== undefined))
+      
+      const hasValidAnswers = Array.isArray(result.answers) && 
+        result.answers.length > 0 && 
+        result.answers.some(a => a && a.id && (a.value !== null && a.value !== undefined))
+      
+      // Verificar que tenga puntuación válida (ser más flexible)
+      const hasValidPuntuacion = typeof result.puntuacion === 'number' || typeof result.total === 'number'
+      
+      // Debug: mostrar qué se encontró
+      console.log('isValidResult debug:', {
+        id: result.id,
+        hasRespuestas: hasValidRespuestas,
+        hasAnswers: hasValidAnswers,
+        hasPuntuacion: hasValidPuntuacion,
+        respuestasLength: result.respuestas?.length,
+        answersLength: result.answers?.length,
+        puntuacion: result.puntuacion,
+        total: result.total
+      })
+      
+      // Ser más flexible: solo requiere que tenga al menos respuestas O puntuación
+      // Esto permite resultados que pueden tener solo uno de los dos
+      return (hasValidRespuestas || hasValidAnswers || hasValidPuntuacion)
+    }
   },
   async created() {
     try {
+      
+      // Verificar estado de autenticación
       const uid = this.$store.state.usuario?.uid
+      
       if (!uid) {
         this.$router.push({ name: 'login', query: { next: this.$route.fullPath } })
         return
       }
-      // Priorizar explícitamente el resultId (por ejemplo, al volver desde "Saber más")
+      
+      // Verificar query parameters
       const resultId = this.$route.query.resultId
+      
       if (resultId) {
         const fetched = await obtenerResultadoPorId(resultId)
-        this.resultado = fetched?.usuarioId === uid ? fetched : null
+        // Verificar que el resultado sea válido y tenga respuestas
+        if (fetched?.usuarioId === uid && this.isValidResult(fetched)) {
+          this.resultado = fetched
+        }
       }
-      // Si no hay resultId válido, tomar el más reciente de formularios generales (excluir domain_)
+      
+      // Si no hay resultId válido, tomar el más reciente válido
       if (!this.resultado) {
         const todos = await listarResultadosPorUsuario(uid)
-        const generales = (todos || []).filter(r => !String(r.formId || '').startsWith('domain_'))
+        
+        // Debug: mostrar todos los resultados encontrados
+        console.log('Todos los resultados encontrados:', todos?.map(r => ({
+          id: r.id,
+          formId: r.formId,
+          puntuacion: r.puntuacion,
+          total: r.total,
+          respuestasLength: r.respuestas?.length,
+          answersLength: r.answers?.length,
+          creadoEn: r.creadoEn
+        })))
+        
+        // Filtrar solo resultados generales (no de dominio) y válidos
+        const generales = (todos || [])
+          .filter(r => !String(r.formId || '').startsWith('domain_'))
+          .filter(r => this.isValidResult(r))
+        
         this.resultado = generales?.[0] || null
+        
+        // Debug: mostrar qué resultados se encontraron
+        console.log('Resultados encontrados:', todos?.length || 0)
+        console.log('Resultados generales válidos:', generales?.length || 0)
+        if (generales?.length > 0) {
+          console.log('Resultado seleccionado:', this.resultado)
+        } else {
+          console.warn('No se encontraron resultados generales válidos')
+          // Mostrar el primer resultado aunque no pase la validación para debug
+          const primerResultado = (todos || []).find(r => !String(r.formId || '').startsWith('domain_'))
+          if (primerResultado) {
+            console.log('Primer resultado (no válido):', primerResultado)
+            console.log('¿Por qué no es válido?', this.isValidResult(primerResultado))
+          }
+        }
       }
+      
       // No considerar resultados profundos antiguos en este resumen
       this.deepByDomain = {}
-      if (!this.resultado) this.error = 'No se encontró el resultado recién guardado.'
+      if (!this.resultado) {
+        this.error = 'No se encontró el resultado recién guardado.'
+      }
+      
     } catch (e) {
       this.error = 'No se pudo cargar el resumen.'
-      // eslint-disable-next-line no-console
-      console.error(e)
+      console.error('Error en created:', e)
     } finally {
       this.cargando = false
     }
-  }
-  , mounted() {
+  },
+  mounted() {
     // escuchar scroll del carrusel de dominios
     try {
       const el = this.$el?.querySelector?.('.domains-strip')
@@ -473,7 +668,7 @@ export default {
       <div class="relative px-6 sm:px-10 py-10 sm:py-14">
         <h1 class="text-4xl md:text-6xl font-black tracking-tight">
           <span class="bg-gradient-to-r from-amber-600 via-rose-500 to-emerald-600 bg-clip-text text-transparent">Tu
-            resumen de bienestar</span>
+            resumen de Bienestar</span>
         </h1>
         <p class="mt-3 max-w-2xl text-base md:text-lg text-gray-700">Una vista clara y serena de cómo estás. Usa esta
           guía para cuidarte con amabilidad.</p>
@@ -488,8 +683,7 @@ export default {
           </div>
           <div class="rounded-2xl bg-white/80 backdrop-blur ring-1 ring-emerald-200 p-5">
             <p class="text-xs font-medium text-emerald-700">Fecha</p>
-            <p class="mt-1 text-lg md:text-xl font-semibold text-emerald-800">{{ resultado?.creadoEn?.toDate ? new
-              Date(resultado.creadoEn.toDate()).toLocaleString('es-ES') : '—' }}</p>
+            <p class="mt-1 text-lg md:text-xl font-semibold text-emerald-800">{{ formatDateTime(resultado?.creadoEn) }}</p>
           </div>
         </div>
         <div class="mt-6">
@@ -533,41 +727,122 @@ export default {
         <div class="mt-4 overflow-x-auto domains-strip scroll-smooth [scrollbar-width:none] [-ms-overflow-style:none] px-1 sm:px-2"
           style="scrollbar-width: none;">
           <div class="flex gap-5 min-w-full">
-            <article v-for="c in catBreakdown" :key="c.key"
-              class="group relative w-[92%] sm:w-[520px] shrink-0 overflow-hidden rounded-3xl p-0 shadow-sm bg-gradient-to-br"
+            <article v-for="(c, index) in catBreakdown" :key="c.key"
+              class="group relative w-[95%] sm:w-[580px] shrink-0 overflow-hidden rounded-3xl p-0 shadow-sm bg-gradient-to-br"
               :class="domainBgClass(c.key)">
               <!-- Portada -->
               <div class="relative h-40 sm:h-56">
                 <img :src="domainImage(c.key)" alt="" class="absolute inset-0 h-full w-full object-cover opacity-60" />
                 <div class="absolute inset-0 bg-gradient-to-t from-white/90 via-white/30 to-transparent"></div>
+                <!-- Indicador de posición -->
+                <div class="absolute top-3 right-3">
+                  <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-white/80 text-xs font-bold text-gray-700">
+                    {{ index + 1 }}/{{ catBreakdown.length }}
+                  </span>
+                </div>
                 <div class="relative h-full w-full p-5 flex items-end justify-between">
                   <div class="min-w-0">
                     <h3 class="text-2xl font-extrabold text-gray-900 tracking-tight">{{ c.label }}</h3>
-                    <p class="mt-1 text-sm text-gray-700 max-w-md">{{ explanationFor(c) }}</p>
+                    <p class="mt-1 text-sm text-gray-700 max-w-sm">{{ explanationFor(c) }}</p>
                   </div>
                   <div class="text-right">
                     <span
-                      class="inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-sm font-bold bg-white/80 ring-1 ring-inset"
-                      :class="badgeClass(c.wellbeingPercent)">
+                      class="inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-sm font-bold bg-white/80 ring-1 ring-inset cursor-help"
+                      :class="badgeClass(c)"
+                      :title="`${c.label}: ${c.percent}% de bienestar${c.orientation === 'negative' ? ' (menos síntomas = más bienestar)' : ' (más síntomas = menos bienestar)'}`">
                       <span class="select-none">{{ domainEmoji(c.key) }}</span>
                       <span>{{ c.percent }}%</span>
                     </span>
+                                         <!-- Indicador de estado con tooltip -->
+                     <div class="mt-1 flex items-center justify-end gap-1">
+                       <span class="inline-flex items-center px-2 py-1 rounded-full text-[10px] font-medium"
+                             :class="{
+                               'bg-emerald-100 text-emerald-800': (c.key === 'animo' && c.percent > 50) || (c.orientation === 'positive' && c.percent >= 67) || (c.orientation === 'negative' && c.percent <= 20),
+                               'bg-purple-100 text-purple-800': (c.key === 'animo' && c.percent > 20 && c.percent <= 50) || (c.orientation === 'positive' && c.percent >= 34 && c.percent < 67) || (c.orientation === 'negative' && c.percent > 20 && c.percent <= 40),
+                               'bg-rose-100 text-rose-800': (c.key === 'animo' && c.percent <= 20) || (c.orientation === 'positive' && c.percent < 34) || (c.orientation === 'negative' && c.percent > 40)
+                             }"
+                                                          :title="`Estado: ${((c.key === 'animo' && c.percent > 50) || (c.orientation === 'positive' && c.percent >= 67) || (c.orientation === 'negative' && c.percent <= 20)) ? 'Excelente' : ((c.key === 'animo' && c.percent > 20) || (c.orientation === 'positive' && c.percent >= 34) || (c.orientation === 'negative' && c.percent <= 40)) ? 'Aceptable' : 'Necesita atención'}`">
+                          {{ ((c.key === 'animo' && c.percent > 50) || (c.orientation === 'positive' && c.percent >= 67) || (c.orientation === 'negative' && c.percent <= 20)) ? '😊 Excelente' : ((c.key === 'animo' && c.percent > 20) || (c.orientation === 'positive' && c.percent >= 34) || (c.orientation === 'negative' && c.percent <= 20)) ? '😐 Aceptable' : '☹️ Atención' }}
+                       </span>
+                     </div>
                     <div v-if="c.overriddenByDeep" class="mt-1 text-[11px] text-gray-600">
-                      <span>General: {{ c.baselineWellbeingPercent }}% · Saber más: {{ c.deepWellbeingPercent }}%</span>
+                      
+                    </div>
+                    <!-- Comparación visual de evolución -->
+                    <div v-if="c.overriddenByDeep" class="mt-2 p-2 bg-white/60 rounded-lg border border-gray-200">
+                      <div class="flex items-center justify-between text-xs mb-1">
+                        <span class="font-medium text-gray-600">Evolución</span>
+                        <div class="flex items-center gap-1">
+                          <span class="font-bold" :class="{
+                            'text-emerald-600': c.percent > c.baselineWellbeingPercent,
+                            'text-rose-600': c.percent < c.baselineWellbeingPercent,
+                            'text-gray-600': c.percent === c.baselineWellbeingPercent
+                          }">
+                            {{ c.percent > c.baselineWellbeingPercent ? '↗️' : 
+                               c.percent < c.baselineWellbeingPercent ? '↘️' : '→' }}
+                          </span>
+                          <span class="font-bold" :class="{
+                            'text-emerald-600': c.percent > c.baselineWellbeingPercent,
+                            'text-rose-600': c.percent < c.baselineWellbeingPercent,
+                            'text-gray-600': c.percent === c.baselineWellbeingPercent
+                          }">
+                            {{ c.percent > c.baselineWellbeingPercent ? 'Mejoró' : 
+                               c.percent < c.baselineWellbeingPercent ? 'Empeoró' : 'Sin cambios' }}
+                          </span>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
               <!-- Cuerpo -->
               <div class="p-5">
+                <!-- Barra de progreso visual -->
+                <div class="mb-4">
+                  <div class="flex items-center justify-between text-sm mb-2">
+                    <span class="font-medium text-gray-700">Bienestar</span>
+                                         <span class="font-bold" :class="{
+                       'text-emerald-600': (c.key === 'animo' && c.percent > 50) || (c.orientation === 'positive' && c.percent >= 67) || (c.orientation === 'negative' && c.percent <= 20),
+                       'text-purple-600': (c.key === 'animo' && c.percent > 20 && c.percent <= 50) || (c.orientation === 'positive' && c.percent >= 34 && c.percent < 67) || (c.orientation === 'negative' && c.percent > 20 && c.percent <= 40),
+                       'text-rose-600': (c.key === 'animo' && c.percent <= 20) || (c.orientation === 'positive' && c.percent < 34) || (c.orientation === 'negative' && c.percent > 40)
+                     }">{{ c.percent }}%</span>
+                  </div>
+                  <h2 class="text-sm font-medium text-gray-700">{{c.percent }} {{c.key}} {{c.orientation}} foty</h2>
+                  <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                                         <div class="h-full rounded-full transition-all duration-500 ease-out"
+                          :class="{
+                            'bg-emerald-500': (c.key === 'animo' && c.percent > 50) || (c.orientation === 'positive' && c.percent >= 67) || (c.orientation === 'negative' && c.percent <= 20),
+                            'bg-purple-500': (c.key === 'animo' && c.percent > 20 && c.percent <= 50) || (c.orientation === 'positive' && c.percent >= 34 && c.percent < 67) || (c.orientation === 'negative' && c.percent > 20 && c.percent <= 40),
+                            'bg-rose-500': (c.key === 'animo' && c.percent <= 20) || (c.orientation === 'positive' && c.percent < 34) || (c.orientation === 'negative' && c.percent > 40)
+                          }"
+                          :style="{ width: c.percent + '%' }">
+                    </div>
+                  </div>
+                                     <!-- Indicadores de umbral -->
+                   <div class="flex justify-between text-xs text-gray-500 mt-1">
+                     <span>0%</span>
+                     <span v-if="c.key === 'animo'">20%</span>
+                     <span v-else-if="c.orientation === 'negative'">20%</span>
+                     <span v-else>34%</span>
+                     <span v-if="c.key === 'animo'">50%</span>
+                     <span v-else-if="c.orientation === 'negative'">40%</span>
+                     <span v-else>67%</span>
+                     <span>100%</span>
+                   </div>
+                </div>
+                
                 <div class="mt-4">
                   <div class="flex items-center gap-2 flex-wrap">
+                    <!-- Botón de explicación rápida -->
+                    
                     <template v-if="isDomainRed(c)">
                       <span class="inline-flex items-center rounded-full bg-white px-4 py-2 text-sm font-semibold text-rose-700 ring-1 ring-inset ring-rose-200">Dominio vulnerable</span>
-                      <router-link v-if="c.deepWellbeingPercent === undefined" :to="domainActionTarget(c)"
+                      <a v-if="c.deepWellbeingPercent === undefined" 
+                        href="#"
+                        @click.prevent="navigateToDomain(c)"
                         class="inline-flex items-center rounded-full bg-white px-4 py-2 text-sm font-semibold text-rose-700 ring-1 ring-inset ring-rose-200 hover:bg-rose-50">
                         {{ domainLearnMoreCta(c) }}
-                      </router-link>
+                      </a>
                     </template>
                     <template v-else>
                       <span class="inline-flex items-center rounded-full bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-200">Dominio en buen estado</span>
@@ -582,6 +857,22 @@ export default {
             </article>
           </div>
 
+        </div>
+        
+        <!-- Puntos indicadores del carrusel -->
+        <div class="mt-6 flex justify-center">
+          <div class="flex items-center gap-2">
+            <button v-for="(c, index) in catBreakdown" :key="index"
+                    @click="goDomain(index)"
+                    class="w-3 h-3 rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    :class="{
+                      'bg-amber-500 scale-110': domainCurrent === index,
+                      'bg-gray-300 hover:bg-gray-400': domainCurrent !== index
+                    }"
+                    :aria-label="`Ir al dominio ${c.label} (${index + 1} de ${catBreakdown.length})`"
+                    :title="`Ver ${c.label}`">
+            </button>
+          </div>
         </div>
       </section>
 
@@ -610,10 +901,10 @@ export default {
             </div>
             <div class="pt-2 text-xs text-gray-600">
               Fórmula bienestar general =
-              <template v-if="explainDomain?.key==='animo'">100 − ( (ánimo + anhedonia) / 6 × 100 )</template>
-              <template v-else-if="explainDomain?.key==='ansiedad'">100 − ( (ansiedad + ansiedad_control + ansiedad_tension) / 6 × 100 )</template>
-              <template v-else-if="explainDomain?.key==='bienestar_fisico'">100 − ( (bienestar_fisico + sueño + energía) / 6 × 100 )</template>
-              <template v-else>100 − ( (impacto) / 3 × 100 )</template>
+                              <template v-if="explainDomain?.key==='animo'">100 − ( (ánimo) / 6 × 100 )</template>
+              <template v-else-if="explainDomain?.key==='gestion_emocional'">100 − ( (gestion_emocional) / 6 × 100 )</template>
+                              <template v-else-if="explainDomain?.key==='bienestar_fisico'">100 − ( (bienestar_fisico) / 6 × 100 )</template>
+                              <template v-else>100 − ( (funcionamiento) / 3 × 100 )</template>
             </div>
             <div v-if="explainDomain?.deepWellbeingPercent !== undefined" class="text-xs text-gray-600">
               Fórmula bienestar “Saber más” = 100 − ( total_dom / 45 × 100 )
@@ -716,7 +1007,7 @@ export default {
                   <div class="flex items-center gap-3">
                     <span
                       class="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-200 text-amber-800 text-3xl">🙂</span>
-                    <h4 class="text-2xl md:text-3xl font-extrabold text-gray-900">Ánimo</h4>
+                    <h4 class="text-2xl md:text-3xl font-extrabold text-gray-900">Ánimo Positivo</h4>
                   </div>
                   <p class="mt-3 text-lg md:text-xl text-gray-800">Estado de ánimo bajo y pérdida de interés.</p>
                 </div>
@@ -724,7 +1015,7 @@ export default {
                   <div class="flex items-center gap-3">
                     <span
                       class="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-200 text-rose-800 text-3xl">⚡</span>
-                    <h4 class="text-2xl md:text-3xl font-extrabold text-gray-900">Ansiedad</h4>
+                    <h4 class="text-2xl md:text-3xl font-extrabold text-gray-900">Gestión Emocional</h4>
                   </div>
                   <p class="mt-3 text-lg md:text-xl text-gray-800">Preocupación constante, tensión o nerviosismo.</p>
                 </div>
@@ -740,7 +1031,7 @@ export default {
                   <div class="flex items-center gap-3">
                     <span
                       class="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-purple-200 text-purple-800 text-3xl">🎯</span>
-                    <h4 class="text-2xl md:text-3xl font-extrabold text-gray-900">Impacto</h4>
+                    <h4 class="text-2xl md:text-3xl font-extrabold text-gray-900">Funcionamiento Diario</h4>
                   </div>
                   <p class="mt-3 text-lg md:text-xl text-gray-800">Cómo afecta a estudios/trabajo, familia y tareas.</p>
                 </div>

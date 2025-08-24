@@ -1,9 +1,11 @@
 <script>
-import { onBeforeUnmount, ref, watch, computed } from 'vue';
-import { listarResultadosPorUsuario, listarFavoritosPorUsuario, removeFavorito } from "@/services/db";
 import { Chart, LineController, LineElement, PointElement, LinearScale, CategoryScale, Tooltip, Legend } from 'chart.js';
-import { useStore } from 'vuex';
+import { onBeforeUnmount, ref, watch, computed } from 'vue';
 import { useToast } from 'vue-toastification';
+import { useStore } from 'vuex';
+
+import { listarResultadosPorUsuario, listarFavoritosPorUsuario, removeFavorito } from "@/services/db";
+
 
 Chart.register(LineController, LineElement, PointElement, LinearScale, CategoryScale, Tooltip, Legend);
 
@@ -152,7 +154,25 @@ export default {
       return u.nombre || u.displayName || (u.email ? u.email.split('@')[0] : '');
     });
 
-    return { resultados, favoritos, canvasEl, loading, formatDate, formatTime, dotClass, badgeClass, eliminarFavorito, iconoCategoria, displayName };
+    // Ordenar resultados por fecha (más reciente primero)
+    const resultadosOrdenados = computed(() => {
+      return resultados.value
+        .filter(r => {
+          // Filtrar solo resultados generales (no de dominio)
+          // Los resultados de dominio tienen formId que empieza con 'domain_'
+          const formId = r.formId || '';
+          return !formId.startsWith('domain_');
+        })
+        .slice()
+        .sort((a, b) => {
+          // Ordenar por fecha de creación (más reciente primero)
+          const fechaA = a.creadoEn?.seconds || 0;
+          const fechaB = b.creadoEn?.seconds || 0;
+          return fechaB - fechaA; // Orden descendente (más reciente primero)
+        });
+    });
+
+    return { resultados, resultadosOrdenados, favoritos, canvasEl, loading, formatDate, formatTime, dotClass, badgeClass, eliminarFavorito, iconoCategoria, displayName };
   }
 }
 </script>
@@ -169,8 +189,8 @@ export default {
       <!-- Lista -->
       <div class="md:col-span-1 rounded-xl border border-gray-200 bg-white/80 backdrop-blur p-4 shadow-sm">
         <h2 class="text-sm font-semibold text-gray-900">Historial</h2>
-        <ul v-if="resultados.length" class="mt-3 space-y-2 text-sm text-gray-700">
-          <li v-for="r in resultados" :key="r.id" class="flex items-center justify-between gap-3">
+        <ul v-if="resultadosOrdenados.length" class="mt-3 space-y-2 text-sm text-gray-700">
+          <li v-for="r in resultadosOrdenados" :key="r.id" class="flex items-center justify-between gap-3">
             <div class="min-w-0">
               <span class="font-medium text-gray-900">{{ formatDate(r.creadoEn) }}</span>
               <span class="ml-2 text-xs text-gray-500">{{ formatTime(r.creadoEn) }}</span>

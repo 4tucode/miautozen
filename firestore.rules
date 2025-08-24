@@ -1,0 +1,87 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // === Helpers de autenticación/roles ===
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && request.auth.token.admin == true;
+    }
+
+    // Email verificado (Firebase Auth) - IMPORTANTE para producción
+    function isVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    // === USUARIOS ===
+    // Cada usuario puede leer/editar solo su perfil
+    match /usuarios/{uid} {
+      allow read, write: if isOwner(uid) || isAdmin();
+    }
+
+    // === RESULTADOS ===
+    // Datos sensibles - SOLO el propietario puede acceder
+    match /resultados/{docId} {
+      // Crear: solo propietario + email verificado + validación de estructura
+      allow create: if isOwner(request.resource.data.usuarioId) 
+                    && isVerified()
+                    && request.resource.data.usuarioId is string
+                    && request.resource.data.autoevaluacionSlug is string
+                    && request.resource.data.respuestas is map
+                    && request.resource.data.puntuacion is number;
+
+      // Leer: SOLO el propietario del resultado
+      allow read: if isOwner(resource.data.usuarioId) || isAdmin();
+
+      // Actualizar: SOLO el propietario del resultado
+      allow update: if isOwner(resource.data.usuarioId) || isAdmin();
+
+      // Borrar: SOLO el propietario del resultado
+      allow delete: if isOwner(resource.data.usuarioId) || isAdmin();
+    }
+
+    // === CONTACTO ===
+    // Cualquiera puede enviar; nadie puede leer (protección de datos)
+    match /contacto/{docId} {
+      allow create: if true;
+      allow read, update, delete: if false;
+    }
+
+    // === MAIL (extensión Trigger Email) ===
+    // La app crea los docs y la extensión los procesa
+    match /mail/{docId} {
+      allow create: if true;
+      allow read, update, delete: if false;
+    }
+
+    // === AUTOEVALUACIONES (catálogo público) ===
+    // Lectura pública; solo admin puede escribir
+    match /autoevaluaciones/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // === FORMULARIOS (catálogo público) ===
+    // Lectura pública; solo admin puede escribir
+    match /formularios/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // === FAVORITOS ===
+    // Solo el dueño puede crear/leer/borrar sus favoritos
+    match /favoritos/{docId} {
+      allow create: if isOwner(request.resource.data.usuarioId);
+      allow read: if isOwner(resource.data.usuarioId);
+      allow update: if isOwner(resource.data.usuarioId);
+      allow delete: if isOwner(resource.data.usuarioId);
+    }
+  }
+}

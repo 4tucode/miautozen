@@ -1,6 +1,7 @@
 <script>
-import { obtenerResultadoPorId } from '@/services/db'
 import { Chart, DoughnutController, ArcElement, Tooltip, Legend } from 'chart.js'
+
+import { obtenerResultadoPorId } from '@/services/db'
 Chart.register(DoughnutController, ArcElement, Tooltip, Legend)
 
 export default {
@@ -16,7 +17,7 @@ export default {
   },
   computed: {
     domainLabel() {
-      const map = { animo: 'Ánimo', ansiedad: 'Ansiedad', bienestar_fisico: 'Bienestar físico', impacto: 'Impacto' }
+      const map = { animo: 'Ánimo positivo', gestion_emocional: 'Gestión emocional', bienestar_fisico: 'Bienestar físico', funcionamiento: 'Funcionamiento diario' }
       return map[this.domainKey] || 'Dominio'
     },
     percent() {
@@ -24,10 +25,10 @@ export default {
       // Máximo por formulario de 15 preguntas con escala 0-3 => 45
       const max = 45
       const total = Number(this.result?.puntuacion || this.result?.total || 0)
-      // Para dominios negativos (ansiedad/impacto), 100% = peor; mostramos bienestar (invertido)
-      const negative = new Set(['ansiedad', 'impacto'])
+      // Todos los dominios son positivos (0 puntos = 100% bienestar, 45 puntos = 0% bienestar)
       const rawPercent = Math.round((Math.max(0, Math.min(max, total)) / max) * 100)
-      return negative.has(this.domainKey) ? (100 - rawPercent) : rawPercent
+      // Convertir a bienestar positivo: 0 puntos = 100%, 45 puntos = 0%
+      return 100 - rawPercent
     },
     badgeClass() {
       const p = Number(this.percent || 0)
@@ -62,7 +63,7 @@ export default {
             'Comparte tus avances con alguien de apoyo.'
           ]
         },
-        ansiedad: {
+        gestion_emocional: {
           bajo: [
             'Prueba la técnica 4-7-8 de respiración antes de dormir.',
             'Reduce cafeína por la tarde.',
@@ -96,7 +97,7 @@ export default {
             'Ajusta tu entorno para favorecer el descanso (luz, ruido, temperatura).'
           ]
         },
-        impacto: {
+        funcionamiento: {
           bajo: [
             'Divide tareas grandes en pasos muy pequeños.',
             'Usa la técnica de 2 minutos para comenzar.',
@@ -126,7 +127,6 @@ export default {
       this.$nextTick(() => this.buildChart())
     } catch (e) {
       this.error = 'No se pudo cargar el resumen de dominio.'
-      // eslint-disable-next-line no-console
       console.error(e)
     } finally {
       this.loading = false
@@ -136,7 +136,9 @@ export default {
     buildChart() {
       const el = this.$refs.chartEl
       if (!el || !this.result) return
-      const p = Number(this.percent || 0)
+      // Preferir wellbeingPercent si existe directamente en el resultado profundo
+      const pRaw = typeof this.result?.wellbeingPercent === 'number' ? Number(this.result.wellbeingPercent) : Number(this.percent || 0)
+      const p = Math.max(0, Math.min(100, pRaw))
       const data = [p, Math.max(0, 100 - p)]
       const ctx = el.getContext('2d')
       if (this.chartInstance) this.chartInstance.destroy()
@@ -224,7 +226,6 @@ export default {
         const ts = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')
         pdf.save(`MiAutoZen-Dominio-${this.domainKey}-${ts}.pdf`)
       } catch (e) {
-        // eslint-disable-next-line no-console
         console.error(e)
         window.print && window.print()
       }
@@ -250,20 +251,10 @@ export default {
         </h1>
         <p class="mt-3 max-w-2xl text-base md:text-lg text-gray-700">Bienestar en {{ domainLabel.toLowerCase() }} según
           tu formulario de 15 preguntas.</p>
-        <div class="mt-6 grid gap-4 sm:grid-cols-3">
+        <div class="mt-6 grid gap-4 sm:grid-cols-1">
           <div class="rounded-2xl bg-white/80 backdrop-blur ring-1 ring-amber-200 p-5">
             <p class="text-xs font-medium text-amber-700">Bienestar en {{ domainLabel }}</p>
             <p class="mt-1 text-3xl md:text-4xl font-extrabold text-amber-800">{{ percent }}%</p>
-          </div>
-          <div class="rounded-2xl bg-white/80 backdrop-blur ring-1 ring-rose-200 p-5">
-            <p class="text-xs font-medium text-rose-700">Puntuación total</p>
-            <p class="mt-1 text-3xl md:text-4xl font-extrabold text-rose-800">{{ result?.puntuacion || result?.total }}
-              pts</p>
-          </div>
-          <div class="rounded-2xl bg-white/80 backdrop-blur ring-1 ring-emerald-200 p-5">
-            <p class="text-xs font-medium text-emerald-700">Fecha</p>
-            <p class="mt-1 text-lg md:text-xl font-semibold text-emerald-800">{{ result?.creadoEn?.toDate ? new
-              Date(result.creadoEn.toDate()).toLocaleString('es-ES') : '—' }}</p>
           </div>
         </div>
         <div class="mt-6">
@@ -271,10 +262,10 @@ export default {
             <router-link :to="{ name: 'results' }"
               class="inline-flex items-center rounded-full bg-gradient-to-r from-amber-500 to-rose-500 px-6 py-2.5 text-sm font-semibold text-white shadow hover:opacity-95">Ver
               todos mis resultados</router-link>
-            <button type="button" @click="downloadPdfDomain"
-              class="inline-flex items-center rounded-full bg-white px-6 py-2.5 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-200 hover:bg-gray-50 shadow">
-              Descargar informe (PDF)
-            </button>
+            <router-link :to="backToSummaryLink()"
+              class="inline-flex items-center rounded-full bg-white px-6 py-2.5 text-sm font-semibold text-gray-800 ring-1 ring-inset ring-gray-200 hover:bg-gray-50 shadow">
+              Volver al resumen general
+            </router-link>
           </div>
         </div>
       </div>
@@ -307,13 +298,6 @@ export default {
             </li>
           </ul>
         </div>
-      </div>
-
-      <div class="pt-4 px-4 sm:px-6 lg:px-8 pb-10">
-        <router-link :to="backToSummaryLink()"
-          class="inline-flex items-center justify-center rounded-md bg-white border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-800 shadow-sm hover:bg-gray-50">
-          Volver al resumen general
-        </router-link>
       </div>
     </div>
   </section>

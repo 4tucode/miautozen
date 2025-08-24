@@ -72,8 +72,16 @@
             </div>
           </div>
 
+          <!-- TOS -->
+          <div class="mt-4 flex items-start gap-3 text-sm text-gray-700">
+            <input id="acceptTos" v-model="acceptTos" type="checkbox" class="mt-1 h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500" required />
+            <label for="acceptTos">
+              Acepto los <router-link :to="{ name: 'terms' }" class="underline">Términos</router-link> y la <router-link :to="{ name: 'privacy' }" class="underline">Política de privacidad</router-link>.
+            </label>
+          </div>
+
           <div class="mt-6">
-            <button :disabled="loading" class="w-full inline-flex justify-center rounded-full border px-4 py-2.5 text-sm font-medium text-purple-700 bg-white border-purple-200/60 shadow-sm hover:shadow transition-all duration-200 ease-out disabled:opacity-60 disabled:cursor-not-allowed">
+            <button :disabled="loading || !acceptTos" class="w-full inline-flex justify-center rounded-full border px-4 py-2.5 text-sm font-medium text-purple-700 bg-white border-purple-200/60 shadow-sm hover:shadow transition-all duration-200 ease-out disabled:opacity-60 disabled:cursor-not-allowed">
               {{ loading ? 'Creando…' : 'Registrarse' }}
             </button>
             <!-- <p v-if="error" class="mt-3 text-sm text-red-600">{{ error }}</p> -->
@@ -86,10 +94,11 @@
 </template>
 
 <script>
-import { register } from "@/services/auth";
 import { useToast } from 'vue-toastification';
+
+import { register } from "@/services/auth";
 export default {
-  data() { return { nombre: "", email: "", password: "", loading: false, error: "" } },
+  data() { return { nombre: "", email: "", password: "", acceptTos: false, loading: false, error: "" } },
   methods: {
     mapAuthError(error) {
       const code = error?.code || '';
@@ -107,11 +116,11 @@ export default {
     async submit() {
       this.loading = true; this.error = "";
       try {
-        await register({ nombre: this.nombre, email: this.email, password: this.password });
-        const next = this.$route.query.next || { name: "home" };
-        this.$router.push(next);
+        const tosVersion = '1.0';
+        await register({ nombre: this.nombre, email: this.email, password: this.password, tosVersion, tosAcceptedAt: new Date() });
         const toast = useToast();
-        toast.success('Cuenta creada con éxito');
+        toast.info('Te hemos enviado un correo para verificar tu cuenta.');
+        this.$router.push({ name: 'verify-email' });
       } catch (e) {
         const msg = this.mapAuthError(e);
         this.error = msg;

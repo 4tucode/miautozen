@@ -1,0 +1,13 @@
+warning: in the working copy of '.eslintrc.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/views/DomainSummaryView.vue', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/views/LoginView.vue', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/views/VerificationView.vue', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/views/summaryView.vue', LF will be replaced by CRLF the next time Git touches it
+.eslintrc.js
+firestore.rules
+src/views/ContactView.vue
+src/views/DomainAssessmentView.vue
+src/views/DomainSummaryView.vue
+src/views/LoginView.vue
+src/views/VerificationView.vue
+src/views/summaryView.vue

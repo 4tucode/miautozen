@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router';
-import store from '@/store';
 import { useToast } from 'vue-toastification';
+
+import store from '@/store';
 
 const routes = [
   {
@@ -24,6 +25,30 @@ const routes = [
     name: 'register',
     component: () => import('@/views/RegisterView.vue'),
     meta: { guest: true, title: 'Crear cuenta', description: 'Crea tu cuenta para empezar a usar MiAutoZen.', robots: 'noindex, nofollow' }
+  },
+  {
+    path: '/verificar-email',
+    name: 'verify-email',
+    component: () => import('@/views/VerificationView.vue'),
+    meta: { title: 'Verificar email', description: 'Confirma tu dirección de correo para activar tu cuenta.', robots: 'noindex, nofollow' }
+  },
+  {
+    path: '/terminos',
+    name: 'terms',
+    component: () => import('@/views/TermsView.vue'),
+    meta: { title: 'Términos y condiciones', description: 'Condiciones de uso del servicio.', robots: 'index, follow' }
+  },
+  {
+    path: '/privacidad',
+    name: 'privacy',
+    component: () => import('@/views/PrivacyView.vue'),
+    meta: { title: 'Política de privacidad', description: 'Información sobre el tratamiento de datos personales.', robots: 'index, follow' }
+  },
+  {
+    path: '/cookies',
+    name: 'cookies',
+    component: () => import('@/views/CookiesView.vue'),
+    meta: { title: 'Política de cookies', description: 'Información sobre cookies utilizadas y cómo gestionarlas.', robots: 'index, follow' }
   },
   {
     path: '/assessment/:slug',
@@ -146,16 +171,21 @@ router.beforeEach((to, from, next) => {
   const toast = useToast();
   const proceed = () => {
     const isAuth = store.getters.isAuth;
+    const isVerified = store.getters.isVerified;
 
     if (to.meta?.auth && !isAuth) {
       // guarda a dónde quería ir para volver después del login
       toast.warning('Debes iniciar sesión para continuar');
       return next({ name: 'login', query: { next: to.fullPath } });
     }
+    if (to.meta?.auth && isAuth && !isVerified) {
+      toast.info('Debes verificar tu email para acceder. Revisa tu correo.');
+      return next({ name: 'verify-email', query: { next: to.fullPath } });
+    }
     if (to.meta?.guest && isAuth) {
       return next({ name: 'home' });
     }
-    next();
+    return next();
   };
 
   // Si todavía estamos cargando el usuario, espera

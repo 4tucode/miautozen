@@ -31,6 +31,15 @@
           <span class="bg-gradient-to-r from-purple-800 to-purple-400 bg-clip-text text-transparent">Autoevaluación</span>
         </h1>
         <p class="mt-1 text-sm text-gray-600">Periodo de referencia: {{ scalePeriod }}</p>
+                 <!-- Dominio actual -->
+         <div v-if="isDataReady" class="mt-2">
+           <div class="inline-flex items-center gap-2 px-2 py-1 rounded-md text-xs font-medium"
+                :class="`bg-gradient-to-r ${currentDomainStyle.bg} ${currentDomainStyle.border} ${currentDomainStyle.text}`">
+             <div class="w-1.5 h-1.5 rounded-full"
+                  :class="`bg-gradient-to-r ${currentDomainStyle.dot}`"></div>
+             {{ dominiosLabel[questions[currentIndex].domain] || 'Cargando...' }}
+           </div>
+         </div>
       </div>
       <div class="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white/80 px-3 py-1 text-sm font-medium text-gray-700 shadow-sm">
         <span class="h-2 w-2 rounded-full bg-gradient-to-r from-purple-800 to-purple-400"></span>
@@ -40,27 +49,46 @@
 
     <!-- Stepper -->
     <nav class="mt-6 flex justify-center gap-2" aria-label="Progreso">
-      <span
+      <div
         v-for="(q, i) in questions"
         :key="q.id"
-        class="h-2 w-2 rounded-full bg-gray-300 transition-transform duration-200 ease-out"
-        :class="i <= currentIndex ? 'bg-gradient-to-r from-purple-800 to-purple-400 scale-110' : ''"
+        class="relative group"
         :aria-label="`Pregunta ${i+1} de ${totalQuestions}`"
-      ></span>
+      >
+        <span
+          class="h-2 w-2 rounded-full transition-all duration-200 ease-out cursor-pointer"
+          :class="i <= currentIndex ? 'bg-gradient-to-r from-purple-800 to-purple-400 scale-110' : 'bg-gray-300'"
+        ></span>
+                 <!-- Tooltip del dominio -->
+         <div v-if="dominiosLabel && q.domain" class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs font-medium text-white bg-gray-800 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
+           {{ dominiosLabel[q.domain] }}
+           <div class="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-800"></div>
+         </div>
+      </div>
     </nav>
 
     <!-- Barra de progreso -->
-    <div
-      class="mt-6 h-2 w-full rounded-full bg-gray-200"
-      role="progressbar"
-      :aria-valuenow="progressPercent"
-      :aria-valuemin="0"
-      :aria-valuemax="100"
-    >
+    <div class="mt-6">
       <div
-        class="h-full rounded-full bg-gradient-to-r from-purple-800 to-purple-400 transition-[width] duration-300 ease-out"
-        :style="{ width: progressPercent + '%' }"
-      ></div>
+        class="h-2 w-full rounded-full bg-gray-200 relative overflow-hidden"
+        role="progressbar"
+        :aria-valuenow="progressPercent"
+        :aria-valuemin="0"
+        :aria-valuemax="100"
+      >
+        <div
+          class="h-full rounded-full bg-gradient-to-r from-purple-800 to-purple-400 transition-[width] duration-300 ease-out"
+          :style="{ width: progressPercent + '%' }"
+        ></div>
+      </div>
+             <!-- Indicadores de dominio en la barra -->
+       <div v-if="isDataReady" class="mt-2 flex justify-between text-xs text-gray-500">
+         <span v-for="(q, i) in questions" :key="q.id" 
+               class="flex-1 text-center truncate px-1"
+               :class="i === currentIndex ? 'font-semibold text-purple-600' : ''">
+                       {{ dominiosLabel[q.domain] }}
+         </span>
+       </div>
     </div>
 
     <!-- Tarjeta de pregunta con transición -->
@@ -77,8 +105,8 @@
         <p class="mt-2 text-sm text-gray-600">
           Piensa en cómo te has sentido en las últimas 2 semanas. No hace falta ser exacto: elige la opción que mejor se acerque a tu caso.
         </p>
-        <p v-if="questions[currentIndex]?.domain === 'impacto'" class="mt-1 text-xs font-medium text-emerald-700">
-          Nota sobre Impacto: 0% de impacto es positivo (verde) porque indica que no hay interferencia en tu vida diaria.
+        <p v-if="questions[currentIndex]?.domain === 'funcionamiento'" class="mt-1 text-xs font-medium text-emerald-700">
+          Nota sobre Funcionamiento: 0% de interferencia es positivo (verde) porque indica que no hay problemas en tu vida diaria.
         </p>
 
         <!-- Opciones -->
@@ -106,6 +134,19 @@
             </span>
           </label>
         </div>
+
+                 <!-- Indicador de dominio -->
+         <div v-if="isDataReady" class="mt-4 flex items-center justify-center">
+           <div class="inline-flex items-center gap-2 px-3 py-2 rounded-full border"
+                :class="`bg-gradient-to-r ${currentDomainStyle.bg} ${currentDomainStyle.border}`">
+             <div class="w-2 h-2 rounded-full"
+                  :class="`bg-gradient-to-r ${currentDomainStyle.dot}`"></div>
+             <span class="text-sm font-medium"
+                   :class="currentDomainStyle.text">
+                               {{ dominiosLabel[questions[currentIndex].domain] }}
+             </span>
+           </div>
+         </div>
 
         <!-- Botón opcional para omitir respuesta -->
         <div v-if="allowSkip" class="mt-2">
@@ -147,8 +188,19 @@
 </template>
 
 <script>
-import { db, auth, serverTimestamp } from '@/firebase'
 import { doc, getDoc, collection, addDoc } from 'firebase/firestore'
+
+import { db, auth, serverTimestamp } from '@/firebase'
+// eslint-disable-next-line no-unused-vars
+import { DOMINIOS_LABEL } from '@/utils/dominios'
+
+// Fallback local por si la importación falla
+const FALLBACK_DOMINIOS_LABEL = {
+  animo: 'Ánimo positivo',
+  gestion_emocional: 'Gestión emocional',
+  bienestar_fisico: 'Bienestar físico',
+  funcionamiento: 'Funcionamiento diario',
+}
 
 export default {
   name: 'AssessmentView',
@@ -181,12 +233,52 @@ export default {
       return Math.round(((this.currentIndex + 1) / this.totalQuestions) * 100)
     },
     showSupportHint() {
-      // pista si en ánimo bajo (q1) o impacto (q7) hay 2–3
+      // pista si en ánimo bajo (q1) o funcionamiento (q7) hay 2–3
       const idxQ1 = this.questions.findIndex(q => q.domain === 'animo')
-      const idxQ7 = this.questions.findIndex(q => q.domain === 'impacto')
+      const idxQ7 = this.questions.findIndex(q => q.domain === 'funcionamiento')
       const v1 = idxQ1 >= 0 ? this.answers[idxQ1] : 0
       const v7 = idxQ7 >= 0 ? this.answers[idxQ7] : 0
       return (v1 >= 2 || v7 >= 2)
+    },
+    currentDomainStyle() {
+      const domain = this.questions[this.currentIndex]?.domain
+      if (!domain) return {}
+      
+      const styles = {
+        animo: {
+          bg: 'from-amber-100 to-orange-100',
+          border: 'border-amber-200',
+          dot: 'from-amber-500 to-orange-500',
+          text: 'text-amber-700'
+        },
+        gestion_emocional: {
+          bg: 'from-rose-100 to-pink-100',
+          border: 'border-rose-200',
+          dot: 'from-rose-500 to-pink-500',
+          text: 'text-rose-700'
+        },
+        bienestar_fisico: {
+          bg: 'from-emerald-100 to-teal-100',
+          border: 'border-emerald-200',
+          dot: 'from-emerald-500 to-teal-500',
+          text: 'text-emerald-700'
+        },
+        funcionamiento: {
+          bg: 'from-purple-100 to-indigo-100',
+          border: 'border-purple-200',
+          dot: 'from-purple-500 to-indigo-500',
+          text: 'text-purple-700'
+        }
+      }
+      
+      return styles[domain] || styles.funcionamiento
+    },
+    isDataReady() {
+      return this.questions.length > 0 && this.questions[this.currentIndex] && this.dominiosLabel
+    },
+    dominiosLabel() {
+      // Usa la importación si está disponible, sino el fallback
+      return DOMINIOS_LABEL || FALLBACK_DOMINIOS_LABEL
     }
   },
   async created() {
@@ -210,12 +302,12 @@ export default {
         // Fallback local por si aún no has creado el doc
         this.questions = [
           { id: 'q1', domain: 'animo', text:'¿Te has sentido triste, decaído/a o sin esperanzas?' },
-          { id: 'q2', domain: 'anhedonia', text:'¿Has notado poco interés o disfrute por cosas que normalmente te gustan?' },
-          { id: 'q3', domain: 'ansiedad_control', text:'¿Te ha costado parar o controlar la preocupación?' },
-          { id: 'q4', domain: 'ansiedad_tension', text:'¿Te has sentido nervioso/a, en tensión o “con los nervios de punta”?' },
-          { id: 'q5', domain: 'sueno', text:'¿Has tenido problemas para dormir bien o para mantener el sueño?' },
-          { id: 'q6', domain: 'energia', text:'¿Te has sentido sin energía o con cansancio fácil?' },
-          { id: 'q7', domain: 'impacto', text:'¿Qué tanto han afectado estos problemas a tu vida diaria (familia, estudios/trabajo, tareas)?' }
+          { id: 'q2', domain: 'animo', text:'¿Has notado poco interés o disfrute por cosas que normalmente te gustan?' },
+          { id: 'q3', domain: 'gestion_emocional', text:'¿Te ha costado parar o controlar la preocupación?' },
+          { id: 'q4', domain: 'gestion_emocional', text:'¿Te has sentido nervioso/a, en tensión o "con los nervios de la punta"?' },
+          { id: 'q5', domain: 'bienestar_fisico', text:'¿Has tenido problemas para dormir bien o para mantener el sueño?' },
+          { id: 'q6', domain: 'bienestar_fisico', text:'¿Te has sentido sin energía o con cansancio fácil?' },
+          { id: 'q7', domain: 'funcionamiento', text:'¿Qué tanto han afectado estos problemas a tu vida diaria?' }
         ]
         this.totalQuestions = 7
       }
@@ -227,12 +319,12 @@ export default {
       // Fallback mínimo
       this.questions = [
         { id: 'q1', domain: 'animo', text:'¿Te has sentido triste, decaído/a o sin esperanzas?' },
-        { id: 'q2', domain: 'anhedonia', text:'¿Has notado poco interés o disfrute por cosas que normalmente te gustan?' },
-        { id: 'q3', domain: 'ansiedad_control', text:'¿Te ha costado parar o controlar la preocupación?' },
-        { id: 'q4', domain: 'ansiedad_tension', text:'¿Te has sentido nervioso/a, en tensión o “con los nervios de la punta”?' },
-        { id: 'q5', domain: 'sueno', text:'¿Has tenido problemas para dormir bien o para mantener el sueño?' },
-        { id: 'q6', domain: 'energia', text:'¿Te has sentido sin energía o con cansancio fácil?' },
-        { id: 'q7', domain: 'impacto', text:'¿Qué tanto han afectado estos problemas a tu vida diaria?' }
+        { id: 'q2', domain: 'animo', text:'¿Has notado poco interés o disfrute por cosas que normalmente te gustan?' },
+        { id: 'q3', domain: 'gestion_emocional', text:'¿Te ha costado parar o controlar la preocupación?' },
+        { id: 'q4', domain: 'gestion_emocional', text:'¿Te has sentido nervioso/a, en tensión o "con los nervios de la punta"?' },
+        { id: 'q5', domain: 'bienestar_fisico', text:'¿Has tenido problemas para dormir bien o para mantener el sueño?' },
+        { id: 'q6', domain: 'bienestar_fisico', text:'¿Te has sentido sin energía o con cansancio fácil?' },
+        { id: 'q7', domain: 'funcionamiento', text:'¿Qué tanto han afectado estos problemas a tu vida diaria?' }
       ]
       this.totalQuestions = 7
       this.answers = Array(7).fill(null)
@@ -269,12 +361,12 @@ export default {
       if (!this.isLast) return this.goNext()
       if (this.answers.includes(null) && !this.allowSkip) {
         this.$toast?.info?.('Responde todas las preguntas')
-        return
+        return false
       }
-      this.submit()
+      return this.submit()
     },
     calcDomainScores() {
-      // Suma por dominios: ánimo(1+2), ansiedad(3+4), sueño/energía(5+6), impacto(7)
+      // Suma por dominios: ánimo(1+2), gestión emocional(3+4), bienestar físico(5+6), funcionamiento(7)
       // Si una respuesta es null (omitida), se excluye del cálculo
       const map = {}
       this.questions.forEach((q, i) => {
@@ -285,10 +377,10 @@ export default {
         map[q.domain] = (map[q.domain] || 0) + v
       })
       const domainScores = {
-        animo: (map['animo'] || 0) + (map['anhedonia'] || 0),
-        ansiedad: (map['ansiedad_control'] || 0) + (map['ansiedad_tension'] || 0),
-        bienestar_fisico: (map['sueno'] || 0) + (map['energia'] || 0),
-        impacto: (map['impacto'] || 0)
+        animo: map['animo'] || 0,
+        gestion_emocional: map['gestion_emocional'] || 0,
+        bienestar_fisico: map['bienestar_fisico'] || 0,
+        funcionamiento: map['funcionamiento'] || 0
       }
       const total = Object.values(domainScores).reduce((a, b) => a + b, 0)
       return { domainScores, total }
