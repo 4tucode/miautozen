@@ -127,7 +127,7 @@ export default {
     <!-- Layout con aside fijo de filtros -->
     <div class="mt-6 grid gap-6 md:grid-cols-[320px,1fr] items-start">
       <!-- Aside filtros -->
-      <aside class="sticky top-24 h-[70vh] overflow-auto self-start rounded-2xl border border-gray-200 bg-white/90 p-5 shadow-sm">
+      <aside class="sticky top-24 h-fit max-h-[70vh] overflow-auto self-start rounded-2xl border border-gray-200 bg-white/90 p-5 shadow-sm">
         <h2 class="text-sm font-semibold text-gray-900">Buscar</h2>
         <label class="relative mt-2 block">
           <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
@@ -158,9 +158,9 @@ export default {
       <!-- Listado de tarjetas -->
       <div>
         <div class="grid gap-6 [grid-template-columns:repeat(auto-fill,minmax(280px,1fr))]">
-          <article v-for="r in listadoFiltrado" :key="r.id" class="group relative rounded-2xl border bg-white  p-5 shadow-sm ring-1 ring-transparent hover:shadow-md hover:ring-purple-200 transition-all">
+          <article v-for="r in listadoFiltrado" :key="r.id" class="group relative rounded-2xl border bg-white p-5 shadow-sm ring-1 ring-transparent hover:shadow-md hover:ring-purple-200 transition-all duration-300 ease-out">
             <!-- Decoración superior -->
-            <div class="absolute -top-10 -right-10 h-24 w-24 rounded-full bg-gradient-to-tr opacity-20 blur-2xl group-hover:opacity-30 group-hover:scale-105 transition-transform"
+            <div class="absolute -top-10 -right-10 h-24 w-24 rounded-full bg-gradient-to-tr opacity-20 blur-2xl group-hover:opacity-30 group-hover:scale-105 transition-transform duration-300"
                  :class="iconoCategoria(r.categoria).color.replace('text','from').replace('bg','to')"></div>
 
             <div class="flex items-start justify-between gap-4">
@@ -170,7 +170,7 @@ export default {
                   <span class="text-lg select-none group-hover:animate-pulse">{{ iconoCategoria(r.categoria).emoji }}</span>
                 </div>
                 <div class="min-w-0">
-                  <h3 class="text-base font-semibold text-gray-900 group-hover:text-purple-800 transition-colors">{{ r.titulo }}</h3>
+                  <h3 class="text-base font-semibold text-gray-900 group-hover:text-purple-800 transition-colors duration-200">{{ r.titulo }}</h3>
                   <p class="mt-1 text-sm text-gray-600">{{ r.descripcion }}</p>
                   <span class="mt-2 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset text-purple-700 bg-purple-50 ring-purple-200">
                     {{ r.categoria }}
@@ -190,7 +190,7 @@ export default {
                 <button v-if="!favoritosIds.has(r.id)"
                         @click="addFavorito(r)"
                         :disabled="cargandoFavs || actualizandoIds.has(r.id)"
-                        class="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-purple-700 to-purple-500 px-3 py-1.5 text-xs font-semibold text-white shadow hover:opacity-95 focus:outline-none focus:ring-2 focus:ring-purple-500 whitespace-nowrap">
+                        class="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-purple-700 to-purple-500 px-3 py-1.5 text-xs font-semibold text-white shadow hover:opacity-95 focus:outline-none focus:ring-2 focus:ring-purple-500 whitespace-nowrap transition-all duration-200">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" class="h-4 w-4"><path stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.62 0-3.04.84-3.812 2.102a4.5 4.5 0 00-3.812-2.102C6.099 3.75 4 5.765 4 8.25c0 6 8 10.5 8 10.5s8-4.5 8-10.5z" /></svg>
                   Añadir a favoritos
                 </button>

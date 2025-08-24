@@ -15,10 +15,10 @@
         <div>
           <h3 class="text-sm font-semibold uppercase tracking-wide text-gray-900">Legal</h3>
           <ul class="mt-3 space-y-2 text-sm text-gray-700">
-            <li><router-link :to="{ name: 'about' }" class="hover:text-gray-900">Sobre</router-link></li>
-            <li><router-link :to="{ name: 'terms' }" class="hover:text-gray-900">Términos y condiciones</router-link></li>
-            <li><router-link :to="{ name: 'privacy' }" class="hover:text-gray-900">Política de privacidad</router-link></li>
-            <li><router-link :to="{ name: 'cookies' }" class="hover:text-gray-900">Política de cookies</router-link></li>
+            <li><a href="#" @click.prevent="scrollToTop('about')" class="hover:text-gray-900 cursor-pointer">Sobre</a></li>
+            <li><a href="#" @click.prevent="scrollToTop('terms')" class="hover:text-gray-900 cursor-pointer">Términos y condiciones</a></li>
+            <li><a href="#" @click.prevent="scrollToTop('privacy')" class="hover:text-gray-900 cursor-pointer">Política de privacidad</a></li>
+            <li><a href="#" @click.prevent="scrollToTop('cookies')" class="hover:text-gray-900 cursor-pointer">Política de cookies</a></li>
           </ul>
         </div>
 
@@ -26,9 +26,9 @@
         <div>
           <h3 class="text-sm font-semibold uppercase tracking-wide text-gray-900">Recursos</h3>
           <ul class="mt-3 space-y-2 text-sm text-gray-700">
-            <li><router-link :to="{ name: 'help' }" class="hover:text-gray-900">Ayuda</router-link></li>
-            <li><router-link :to="{ name: 'resources' }" class="hover:text-gray-900">Guías y artículos</router-link></li>
-            <li><router-link :to="{ name: 'contact' }" class="hover:text-gray-900">Contacto</router-link></li>
+            <li><a href="#" @click.prevent="scrollToTop('help')" class="hover:text-gray-900 cursor-pointer">Ayuda</a></li>
+            <li><a href="#" @click.prevent="scrollToTop('resources')" class="hover:text-gray-900 cursor-pointer">Guías y artículos</a></li>
+            <li><a href="#" @click.prevent="scrollToTop('contact')" class="hover:text-gray-900 cursor-pointer">Contacto</a></li>
           </ul>
         </div>
 
@@ -67,7 +67,21 @@
 import logo from '@/assets/logo.svg'
 export default {
   name: 'FooterBar',
-  computed: { logo() { return logo } }
+  computed: { logo() { return logo } },
+  methods: {
+    scrollToTop(routeName) {
+      // Primero navega a la ruta
+      this.$router.push({ name: routeName }).then(() => {
+        // Después de la navegación, hace scroll suave a la parte superior
+        this.$nextTick(() => {
+          window.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+          })
+        })
+      })
+    }
+  }
 }
 </script>
 

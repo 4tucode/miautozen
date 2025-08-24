@@ -48,8 +48,21 @@ export default {
       // Usar DOMINIOS_LABEL importado en lugar de labelByKey local
       const r = this.resultado || {}
       
+      // Debug: mostrar el resultado que se está procesando
+      console.log('Procesando resultado en catBreakdown:', {
+        id: r.id,
+        formId: r.formId,
+        hasRespuestas: Array.isArray(r.respuestas),
+        hasAnswers: Array.isArray(r.answers),
+        puntuacion: r.puntuacion,
+        total: r.total,
+        respuestasLength: r.respuestas?.length,
+        answersLength: r.answers?.length
+      })
+      
       // Verificar que el resultado tenga datos válidos
       if (!r || !r.id || Object.keys(r).length === 0) {
+        console.warn('catBreakdown: resultado inválido o vacío')
         return out
       }
       
@@ -73,8 +86,46 @@ export default {
         })
       }
       
+      // Debug: mostrar las respuestas procesadas
+      console.log('Respuestas procesadas:', respuestas)
+      console.log('Preguntas disponibles:', this.questions)
+      
+      // Verificar que tengamos respuestas válidas antes de calcular
+      const hasValidRespuestas = Object.keys(respuestas).length > 0
+      if (!hasValidRespuestas) {
+        console.warn('catBreakdown: no hay respuestas válidas, usando puntuación total como fallback')
+        
+        // Fallback: si no hay respuestas pero sí puntuación, calcular porcentaje global
+        const total = Number(r?.puntuacion || r?.total || 0)
+        if (total > 0) {
+          // Calcular porcentaje global basado en la puntuación total (0-21 puntos)
+          const globalPercent = Math.max(0, Math.min(100, Math.round((1 - (total / 21)) * 100)))
+          
+          // Asignar el mismo porcentaje a todos los dominios como fallback
+          Object.keys(DOMINIOS_LABEL).forEach(key => {
+            out.push({
+              key,
+              label: DOMINIOS_LABEL[key],
+              value: 0,
+              max: 0,
+              percent: globalPercent,
+              wellbeingPercent: globalPercent,
+              baselineWellbeingPercent: globalPercent,
+              orientation: 'positive',
+              isFallback: true
+            })
+          })
+          
+          console.log('Usando fallback con porcentaje global:', globalPercent)
+          return out.sort((a, b) => Number(a.wellbeingPercent || 0) - Number(b.wellbeingPercent || 0))
+        }
+      }
+      
       // Calcular porcentajes de bienestar usando la función helper
       const dominiosPct = calcularBienestarPorDominio(this.questions, respuestas)
+      
+      // Debug: mostrar los porcentajes calculados
+      console.log('Porcentajes calculados:', dominiosPct)
       
       // Crear array de resultados para cada dominio
       Object.entries(dominiosPct).forEach(([key, percent]) => {
@@ -118,6 +169,9 @@ export default {
         ...c,
         finalWellbeingPercent: c.finalWellbeingPercent || c.baselineWellbeingPercent
       }))
+
+      // Debug: mostrar el resultado final
+      console.log('Resultado final catBreakdown:', withFinal)
 
       return withFinal.sort((a, b) => Number(a.wellbeingPercent || 0) - Number(b.wellbeingPercent || 0))
     },
@@ -301,7 +355,20 @@ export default {
     domainActionTarget(c) {
       if (!this.isDomainRed(c)) return null
       const fromResultId = this.resultado?.id || ''
-      return { name: 'domain-assessment', params: { domain: c?.key }, query: (fromResultId ? { fromResultId } : {}) }
+      return { 
+        name: 'domain-assessment', 
+        params: { domain: c?.key }, 
+        query: (fromResultId ? { fromResultId } : {}),
+        onComplete: () => {
+          // Scroll suave a la parte superior después de la navegación
+          this.$nextTick(() => {
+            window.scrollTo({
+              top: 0,
+              behavior: 'smooth'
+            })
+          })
+        }
+      }
     },
     scrollToSection(id) {
       try {
@@ -422,6 +489,60 @@ export default {
       this.explainOpen = false
       this.explainDomain = null
     }
+    , navigateToDomain(c) {
+      if (this.hasDeepResultFor(c?.key)) {
+        this.$router.push({ name: 'domain-summary', params: { domain: c.key }, query: { resultId: this.deepByDomain[c.key].resultId, fromResultId: this.resultado?.id || undefined } })
+      } else {
+        this.$router.push({ name: 'domain-assessment', params: { domain: c.key }, query: { fromResultId: this.resultado?.id || undefined } })
+      }
+      this.$nextTick(() => {
+        window.scrollTo({
+          top: 0,
+          behavior: 'smooth'
+        })
+      })
+    },
+    backToSummaryLink() {
+      const fromResultId = this.$route.query.fromResultId
+      return fromResultId
+        ? { name: 'assessment-summary', query: { resultId: fromResultId } }
+        : { name: 'assessment-summary' }
+    },
+    isValidResult(result) {
+      // Verificar que el resultado tenga un ID y sea del usuario correcto
+      if (!result?.id || !result?.usuarioId) {
+        console.warn('isValidResult: resultado sin ID o usuarioId', { id: result?.id, usuarioId: result?.usuarioId })
+        return false
+      }
+      
+      // Verificar que tenga respuestas válidas (ser más flexible)
+      const hasValidRespuestas = Array.isArray(result.respuestas) && 
+        result.respuestas.length > 0 && 
+        result.respuestas.some(r => r && r.id && (r.valor !== null && r.valor !== undefined))
+      
+      const hasValidAnswers = Array.isArray(result.answers) && 
+        result.answers.length > 0 && 
+        result.answers.some(a => a && a.id && (a.value !== null && a.value !== undefined))
+      
+      // Verificar que tenga puntuación válida (ser más flexible)
+      const hasValidPuntuacion = typeof result.puntuacion === 'number' || typeof result.total === 'number'
+      
+      // Debug: mostrar qué se encontró
+      console.log('isValidResult debug:', {
+        id: result.id,
+        hasRespuestas: hasValidRespuestas,
+        hasAnswers: hasValidAnswers,
+        hasPuntuacion: hasValidPuntuacion,
+        respuestasLength: result.respuestas?.length,
+        answersLength: result.answers?.length,
+        puntuacion: result.puntuacion,
+        total: result.total
+      })
+      
+      // Ser más flexible: solo requiere que tenga al menos respuestas O puntuación
+      // Esto permite resultados que pueden tener solo uno de los dos
+      return (hasValidRespuestas || hasValidAnswers || hasValidPuntuacion)
+    }
   },
   async created() {
     try {
@@ -439,16 +560,48 @@ export default {
       
       if (resultId) {
         const fetched = await obtenerResultadoPorId(resultId)
-        this.resultado = fetched?.usuarioId === uid ? fetched : null
+        // Verificar que el resultado sea válido y tenga respuestas
+        if (fetched?.usuarioId === uid && this.isValidResult(fetched)) {
+          this.resultado = fetched
+        }
       }
       
-      // Si no hay resultId válido, tomar el más reciente
+      // Si no hay resultId válido, tomar el más reciente válido
       if (!this.resultado) {
         const todos = await listarResultadosPorUsuario(uid)
         
-        const generales = (todos || []).filter(r => !String(r.formId || '').startsWith('domain_'))
+        // Debug: mostrar todos los resultados encontrados
+        console.log('Todos los resultados encontrados:', todos?.map(r => ({
+          id: r.id,
+          formId: r.formId,
+          puntuacion: r.puntuacion,
+          total: r.total,
+          respuestasLength: r.respuestas?.length,
+          answersLength: r.answers?.length,
+          creadoEn: r.creadoEn
+        })))
+        
+        // Filtrar solo resultados generales (no de dominio) y válidos
+        const generales = (todos || [])
+          .filter(r => !String(r.formId || '').startsWith('domain_'))
+          .filter(r => this.isValidResult(r))
         
         this.resultado = generales?.[0] || null
+        
+        // Debug: mostrar qué resultados se encontraron
+        console.log('Resultados encontrados:', todos?.length || 0)
+        console.log('Resultados generales válidos:', generales?.length || 0)
+        if (generales?.length > 0) {
+          console.log('Resultado seleccionado:', this.resultado)
+        } else {
+          console.warn('No se encontraron resultados generales válidos')
+          // Mostrar el primer resultado aunque no pase la validación para debug
+          const primerResultado = (todos || []).find(r => !String(r.formId || '').startsWith('domain_'))
+          if (primerResultado) {
+            console.log('Primer resultado (no válido):', primerResultado)
+            console.log('¿Por qué no es válido?', this.isValidResult(primerResultado))
+          }
+        }
       }
       
       // No considerar resultados profundos antiguos en este resumen
@@ -463,8 +616,8 @@ export default {
     } finally {
       this.cargando = false
     }
-  }
-  , mounted() {
+  },
+  mounted() {
     // escuchar scroll del carrusel de dominios
     try {
       const el = this.$el?.querySelector?.('.domains-strip')
@@ -575,7 +728,7 @@ export default {
           style="scrollbar-width: none;">
           <div class="flex gap-5 min-w-full">
             <article v-for="(c, index) in catBreakdown" :key="c.key"
-              class="group relative w-[92%] sm:w-[520px] shrink-0 overflow-hidden rounded-3xl p-0 shadow-sm bg-gradient-to-br"
+              class="group relative w-[95%] sm:w-[580px] shrink-0 overflow-hidden rounded-3xl p-0 shadow-sm bg-gradient-to-br"
               :class="domainBgClass(c.key)">
               <!-- Portada -->
               <div class="relative h-40 sm:h-56">
@@ -590,7 +743,7 @@ export default {
                 <div class="relative h-full w-full p-5 flex items-end justify-between">
                   <div class="min-w-0">
                     <h3 class="text-2xl font-extrabold text-gray-900 tracking-tight">{{ c.label }}</h3>
-                    <p class="mt-1 text-sm text-gray-700 max-w-md">{{ explanationFor(c) }}</p>
+                    <p class="mt-1 text-sm text-gray-700 max-w-sm">{{ explanationFor(c) }}</p>
                   </div>
                   <div class="text-right">
                     <span
@@ -613,44 +766,30 @@ export default {
                        </span>
                      </div>
                     <div v-if="c.overriddenByDeep" class="mt-1 text-[11px] text-gray-600">
-                      <span>General: {{ c.baselineWellbeingPercent }}% · Saber más: {{ c.deepWellbeingPercent }}%</span>
+                      
                     </div>
                     <!-- Comparación visual de evolución -->
                     <div v-if="c.overriddenByDeep" class="mt-2 p-2 bg-white/60 rounded-lg border border-gray-200">
                       <div class="flex items-center justify-between text-xs mb-1">
                         <span class="font-medium text-gray-600">Evolución</span>
-                        <span class="font-bold" :class="{
-                          'text-emerald-600': c.percent > c.baselineWellbeingPercent,
-                          'text-rose-600': c.percent < c.baselineWellbeingPercent,
-                          'text-gray-600': c.percent === c.baselineWellbeingPercent
-                        }">
-                          {{ c.percent > c.baselineWellbeingPercent ? '↗️ Mejoró' : 
-                             c.percent < c.baselineWellbeingPercent ? '↘️ Empeoró' : '→ Sin cambios' }}
-                        </span>
-                      </div>
-                      <div class="flex items-center gap-2">
-                        <div class="flex-1">
-                          <div class="text-[10px] text-gray-500 mb-1">General</div>
-                          <div class="w-full bg-gray-200 rounded-full h-2">
-                            <div class="h-full rounded-full bg-gray-400 transition-all duration-300"
-                                 :style="{ width: c.baselineWellbeingPercent + '%' }">
-                            </div>
-                          </div>
+                        <div class="flex items-center gap-1">
+                          <span class="font-bold" :class="{
+                            'text-emerald-600': c.percent > c.baselineWellbeingPercent,
+                            'text-rose-600': c.percent < c.baselineWellbeingPercent,
+                            'text-gray-600': c.percent === c.baselineWellbeingPercent
+                          }">
+                            {{ c.percent > c.baselineWellbeingPercent ? '↗️' : 
+                               c.percent < c.baselineWellbeingPercent ? '↘️' : '→' }}
+                          </span>
+                          <span class="font-bold" :class="{
+                            'text-emerald-600': c.percent > c.baselineWellbeingPercent,
+                            'text-rose-600': c.percent < c.baselineWellbeingPercent,
+                            'text-gray-600': c.percent === c.baselineWellbeingPercent
+                          }">
+                            {{ c.percent > c.baselineWellbeingPercent ? 'Mejoró' : 
+                               c.percent < c.baselineWellbeingPercent ? 'Empeoró' : 'Sin cambios' }}
+                          </span>
                         </div>
-                        <div class="text-gray-400">→</div>
-                                                 <div class="flex-1">
-                           <div class="text-[10px] text-gray-500 mb-1">Saber más</div>
-                           <div class="w-full bg-gray-200 rounded-full h-2">
-                             <div class="h-full rounded-full transition-all duration-300"
-                                  :class="{
-                                    'bg-emerald-500': (c.key === 'animo' && c.percent > 50) || (c.orientation === 'positive' && c.percent >= 67) || (c.orientation === 'negative' && c.percent <= 20),
-                                    'bg-purple-500': (c.key === 'animo' && c.percent > 20 && c.percent <= 50) || (c.orientation === 'positive' && c.percent >= 34 && c.percent < 67) || (c.orientation === 'negative' && c.percent > 20 && c.percent <= 40),
-                                    'bg-rose-500': (c.key === 'animo' && c.percent <= 20) || (c.orientation === 'positive' && c.percent < 34) || (c.orientation === 'negative' && c.percent > 40)
-                                  }"
-                                  :style="{ width: c.percent + '%' }">
-                             </div>
-                           </div>
-                         </div>
                       </div>
                     </div>
                   </div>
@@ -695,21 +834,15 @@ export default {
                 <div class="mt-4">
                   <div class="flex items-center gap-2 flex-wrap">
                     <!-- Botón de explicación rápida -->
-                    <button @click="openExplain(c)" 
-                            class="inline-flex items-center gap-1 rounded-full bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-200 hover:bg-blue-100 transition-colors"
-                            :title="`Explicar cómo se calcula el ${c.percent}% de bienestar en ${c.label}`">
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-3 h-3">
-                        <path d="M11.25 4.533A9.707 9.707 0 006 3a9.735 9.735 0 00-3.25.555.75.75 0 00-.5.707v14.25a.75.75 0 001 .707A8.237 8.237 0 016 18.75c1.995 0 3.823.707 5.25 1.886V4.533zM12.75 20.636A8.214 8.214 0 0118 18.75c.966 0 1.89.166 2.75.47a.75.75 0 001-.708V4.262a.75.75 0 00-.5-.707A9.735 9.735 0 0018 3a9.707 9.707 0 00-5.25 1.533v16.103z"/>
-                      </svg>
-                      Explicar
-                    </button>
                     
                     <template v-if="isDomainRed(c)">
                       <span class="inline-flex items-center rounded-full bg-white px-4 py-2 text-sm font-semibold text-rose-700 ring-1 ring-inset ring-rose-200">Dominio vulnerable</span>
-                      <router-link v-if="c.deepWellbeingPercent === undefined" :to="domainActionTarget(c)"
+                      <a v-if="c.deepWellbeingPercent === undefined" 
+                        href="#"
+                        @click.prevent="navigateToDomain(c)"
                         class="inline-flex items-center rounded-full bg-white px-4 py-2 text-sm font-semibold text-rose-700 ring-1 ring-inset ring-rose-200 hover:bg-rose-50">
                         {{ domainLearnMoreCta(c) }}
-                      </router-link>
+                      </a>
                     </template>
                     <template v-else>
                       <span class="inline-flex items-center rounded-full bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-200">Dominio en buen estado</span>
