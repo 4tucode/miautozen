@@ -29,19 +29,23 @@ export default {
       activeSection: 'intro',
       interpretObserver: null
       , explainOpen: false
-      , explainDomain: null
+      , explainDomain: null,
+      // Definir las preguntas para usar con calcularBienestarPorDominio
+      questions: [
+        { id: 'q1', domain: 'animo', text:'¿Te has sentido triste, decaído/a o sin esperanzas?' },
+        { id: 'q2', domain: 'animo', text:'¿Has notado poco interés o disfrute por cosas que normalmente te gustan?' },
+        { id: 'q3', domain: 'gestion_emocional', text:'¿Te ha costado parar o controlar la preocupación?' },
+        { id: 'q4', domain: 'gestion_emocional', text:'¿Te has sentido nervioso/a, en tensión o "con los nervios de la punta"?' },
+        { id: 'q5', domain: 'bienestar_fisico', text:'¿Has tenido problemas para dormir bien o para mantener el sueño?' },
+        { id: 'q6', domain: 'bienestar_fisico', text:'¿Te has sentido sin energía o con cansancio fácil?' },
+        { id: 'q7', domain: 'funcionamiento', text:'¿Qué tanto han afectado estos problemas a tu vida diaria?' }
+      ]
     }
   },
   computed: {
     catBreakdown() {
       const out = []
-      const labelByKey = {
-        animo: 'Ánimo positivo',
-        gestion_emocional: 'Gestión emocional',
-        bienestar_fisico: 'Bienestar físico',
-        funcionamiento: 'Funcionamiento diario'
-      }
-      const maxByKey = { animo: 6, gestion_emocional: 6, bienestar_fisico: 6, funcionamiento: 3 }
+      // Usar DOMINIOS_LABEL importado en lugar de labelByKey local
       const r = this.resultado || {}
       
       // Verificar que el resultado tenga datos válidos
@@ -49,68 +53,39 @@ export default {
         return out
       }
       
-      // Obtener domainScores del resultado o calcular desde respuestas
-      let ds = r.domainScores
+      // Crear mapa de respuestas para usar con calcularBienestarPorDominio
+      const respuestas = {}
       
-      if (!ds || Object.keys(ds).length === 0) {
-        // Calcular desde answers/respuestas del formulario
-        const answers = Array.isArray(r.answers) ? r.answers : []
-        
-        const tmp = {}
-        answers.forEach(a => {
-          if (!a || !a.domain || a.value === null || a.value === undefined) return
-          const k = a.domain
-          const v = Number(a.value || 0)
-          if (Number.isNaN(v)) return
-          tmp[k] = (tmp[k] || 0) + v
+      // Intentar obtener respuestas del resultado
+      if (Array.isArray(r.respuestas)) {
+        // Formato antiguo: respuestas como array de objetos
+        r.respuestas.forEach(resp => {
+          if (resp && resp.id && resp.valor !== null && resp.valor !== undefined) {
+            respuestas[resp.id] = Number(resp.valor)
+          }
         })
-        ds = tmp
-      }
-      
-      // Si aún no hay domainScores, calcular desde respuestas antiguas
-      if (!ds || Object.keys(ds).length === 0) {
-        const respuestas = Array.isArray(r.respuestas) ? r.respuestas : []
-        
-        const tmp = {}
-        respuestas.forEach(r => {
-          if (!r || !r.dominio || r.valor === null || r.valor === undefined) return
-          const k = r.dominio
-          const v = Number(r.valor || 0)
-          if (Number.isNaN(v)) return
-          tmp[k] = (tmp[k] || 0) + v
+      } else if (Array.isArray(r.answers)) {
+        // Formato nuevo: answers como array de objetos
+        r.answers.forEach(ans => {
+          if (ans && ans.id && ans.value !== null && ans.value !== undefined) {
+            respuestas[ans.id] = Number(ans.value)
+          }
         })
-        ds = tmp
-      }
-
-      // Agrupar por dominios principales usando la nueva lógica
-      const values = {
-        animo: Number(ds?.animo || 0),
-        gestion_emocional: Number(ds?.gestion_emocional || 0),
-        bienestar_fisico: Number(ds?.bienestar_fisico || 0),
-        funcionamiento: Number(ds?.funcionamiento || 0)
       }
       
-      // Calcular porcentajes de bienestar (100% = bienestar máximo)
-      // IMPORTANTE: Todos los dominios son positivos (0% = mal, 100% = bien)
-      // Usar la nueva fórmula: (1 - (sum / max)) * 100
+      // Calcular porcentajes de bienestar usando la función helper
+      const dominiosPct = calcularBienestarPorDominio(this.questions, respuestas)
       
-      ;['animo', 'gestion_emocional', 'bienestar_fisico', 'funcionamiento'].forEach(key => {
-        const max = maxByKey[key]
-        const raw = Math.max(0, Math.min(max, Number(values[key] || 0)))
-        
-        // Todos los dominios usan la misma fórmula positiva: (1 - (raw / max)) * 100
-        // Ejemplo: si raw=0 (sin síntomas), wellbeingPercent=100% (bienestar máximo)
-        // Ejemplo: si raw=max (síntomas máximos), wellbeingPercent=0% (sin bienestar)
-        const wellbeingPercent = Math.round((1 - (raw / max)) * 100)
-        
+      // Crear array de resultados para cada dominio
+      Object.entries(dominiosPct).forEach(([key, percent]) => {
         out.push({
           key,
-          label: labelByKey[key],
-          value: raw,
-          max,
-          percent: wellbeingPercent, // Porcentaje de bienestar para mostrar
-          wellbeingPercent, // Para colores/emoji
-          baselineWellbeingPercent: wellbeingPercent,
+          label: DOMINIOS_LABEL[key],
+          value: 0, // No necesitamos el valor raw para la nueva lógica
+          max: 0, // No necesitamos el max para la nueva lógica
+          percent: percent,
+          wellbeingPercent: percent,
+          baselineWellbeingPercent: percent,
           orientation: 'positive' // Todos los dominios son positivos
         })
       })
@@ -278,121 +253,37 @@ export default {
     },
     badgeClass(domain) {
       const p = Number(domain?.percent || 0)
-      const isPositive = domain?.orientation === 'positive'
-      const isAnimo = domain?.key === 'animo'
       
-      // LÓGICA CORREGIDA:
-      // Para ÁNIMO: 0% = malestar máximo (rojo), 100% = bienestar máximo (verde)
-      // Para dominios negativos (ansiedad, impacto): 0% = bienestar máximo (verde), 100% = malestar máximo (rojo)
-      // Para dominios positivos (bienestar físico): 0% = malestar máximo (rojo), 100% = bienestar máximo (verde)
-      
-      if (isAnimo) {
-        // Ánimo: lógica específica - 0% = rojo, 50% = morado, 100% = verde
-        if (p <= 20) return 'text-rose-700 bg-rose-50 border border-rose-200'
-        if (p <= 50) return 'text-purple-700 bg-purple-50 border border-purple-200'
-        return 'text-emerald-700 bg-emerald-50 border border-emerald-200'
-      } else if (isPositive) {
-        // Solo bienestar físico: umbrales estándar
-        if (p >= 67) return 'text-emerald-700 bg-emerald-50 border border-emerald-200'
-        if (p >= 34) return 'text-purple-700 bg-purple-50 border border-purple-200'
-        return 'text-rose-700 bg-rose-50 border border-rose-200'
-      } else {
-        // Ansiedad e impacto: umbrales invertidos
-        // 0-20% = verde (bienestar máximo, sin síntomas)
-        // 21-40% = morado (estado medio)
-        // 41%+ = rojo (malestar alto, muchos síntomas)
-        if (p <= 20) return 'text-emerald-700 bg-emerald-50 border border-emerald-200'
-        if (p <= 40) return 'text-purple-700 bg-purple-50 border border-purple-200'
-        return 'text-rose-700 bg-rose-50 border border-rose-200'
-      }
+      // TODOS los dominios son positivos: 0% = malestar máximo (rojo), 100% = bienestar máximo (verde)
+      if (p >= 67) return 'text-emerald-700 bg-emerald-50 border border-emerald-200'
+      if (p >= 34) return 'text-purple-700 bg-purple-50 border border-purple-200'
+      return 'text-rose-700 bg-rose-50 border border-rose-200'
     },
     emojiForPercent(domain) {
       const p = Number(domain?.percent || 0)
-      const isPositive = domain?.orientation === 'positive'
-      const isAnimo = domain?.key === 'animo'
-      
-      // LÓGICA CORREGIDA:
-      // Para ÁNIMO: 0% = malestar máximo (☹️), 100% = bienestar máximo (😊)
-      // Para dominios negativos (ansiedad, impacto): 0% = bienestar máximo (😊), 100% = malestar máximo (☹️)
-      // Para dominios positivos (bienestar físico): 0% = malestar máximo (☹️), 100% = bienestar máximo (😊)
-      
-      if (isAnimo) {
-        // Ánimo: lógica específica - 0% = ☹️, 50% = 😐, 100% = 😊
-        if (p <= 20) return '☹️' // Malestar máximo = triste
-        if (p <= 50) return '😐' // Estado medio = neutral
-        return '😊' // Bienestar máximo = feliz
-      } else if (isPositive) {
-        // Solo bienestar físico: umbrales estándar
-        if (p >= 67) return '😊'
-        if (p >= 34) return '😐'
-        return '☹️'
-      } else {
-        // Ansiedad e impacto: umbrales invertidos
-        // 0-20% = 😊 (bienestar máximo, sin síntomas)
-        // 21-40% = 😐 (estado medio)
-        // 41%+ = ☹️ (malestar alto, muchos síntomas)
-        if (p <= 20) return '😊'
-        if (p <= 40) return '😐'
-        return '☹️'
-      }
+      // TODOS los dominios son positivos: 0% = malestar máximo (☹️), 100% = bienestar máximo (😊)
+      if (p >= 67) return '😊'
+      if (p >= 34) return '😐'
+      return '☹️'
     },
     explanationFor(c) {
       const p = Number(c?.percent || 0) // porcentaje mostrado
-      const domainDescByKey = {
-        animo: 'estado de ánimo bajo y pérdida de interés',
-        gestion_emocional: 'preocupación, tensión o nerviosismo',
-        bienestar_fisico: 'sueño y energía (descanso, cansancio, fatiga)',
-        funcionamiento: 'interferencia en tus actividades diarias'
-      }
-      const domainDesc = domainDescByKey[c?.key] || 'este dominio'
+      // Descripción de dominios para contexto
       
-      // LÓGICA CORREGIDA:
-      // Para ÁNIMO: 0% = malestar máximo, 100% = bienestar máximo
-      // Para dominios negativos (ansiedad, impacto): 0% = bienestar máximo, 100% = malestar máximo
-      // Para dominios positivos (bienestar físico): 0% = malestar máximo, 100% = bienestar máximo
+      // TODOS los dominios son positivos: 0% = malestar máximo, 100% = bienestar máximo
+      let nivel = 'bajo', detalle = 'podría mejorar', sugerencia = 'pequeños hábitos pueden ayudar'
+      if (p > 66) { nivel = 'alto'; detalle = 'muy buen estado'; sugerencia = 'sigue cuidando tus rutinas' }
+      else if (p > 33) { nivel = 'moderado'; detalle = 'estado aceptable'; sugerencia = 'consolida tus hábitos saludables' }
       
-      if (c.key === 'animo') {
-        // Ánimo: lógica específica - 0% = malestar, 100% = bienestar
-        let nivel = 'bajo', detalle = 'estado de ánimo bajo', sugerencia = 'considera buscar apoyo'
-        if (p > 66) { nivel = 'alto'; detalle = 'muy buen estado de ánimo'; sugerencia = 'sigue cuidando tu bienestar emocional' }
-        else if (p > 33) { nivel = 'moderado'; detalle = 'estado de ánimo aceptable'; sugerencia = 'consolida hábitos que mejoren tu ánimo' }
-        return `Tienes un ${p}% en ${c.label} (${nivel}): ${detalle}; ${sugerencia}.`
-      } else if (c.orientation === 'positive') {
-        // Solo bienestar físico: lógica estándar
-        let nivel = 'bajo', detalle = 'podría mejorar', sugerencia = 'pequeños hábitos pueden ayudar'
-        if (p > 66) { nivel = 'alto'; detalle = 'muy buen estado'; sugerencia = 'sigue cuidando tus rutinas' }
-        else if (p > 33) { nivel = 'moderado'; detalle = 'estado aceptable'; sugerencia = 'consolida tus hábitos saludables' }
-        return `Tienes un ${p}% en ${c.label} (${nivel}): ${detalle}; ${sugerencia}.`
-      } else {
-        // Ansiedad e impacto: lógica invertida
-        let nivel = 'bajo', detalle = 'señales leves', sugerencia = 'estás cerca de tu bienestar'
-        if (p > 66) { nivel = 'alto'; detalle = 'señales elevadas'; sugerencia = 'considera buscar apoyo si persiste' }
-        else if (p > 33) { nivel = 'moderado'; detalle = 'señales moderadas'; sugerencia = 'cuidar hábitos y rutinas puede ayudar' }
-        return `Tienes un ${p}% en ${c.label} (${nivel}): ${detalle} de ${domainDesc}; ${sugerencia}.`
-      }
+      return `Tienes un ${p}% en ${c.label} (${nivel}): ${detalle}; ${sugerencia}.`
     },
     isDomainRed(c) {
-      // Usar el porcentaje de bienestar calculado (percent), no wellbeingPercent
+      // Usar el porcentaje de bienestar calculado (percent)
       const p = Number(c?.percent || 0)
-      const isPositive = c?.orientation === 'positive'
-      const isAnimo = c?.key === 'animo'
       
-      // LÓGICA CORREGIDA:
-      // Para ÁNIMO: 0% = vulnerable (rojo), 100% = buen estado (no rojo)
-      // Para dominios negativos (ansiedad, impacto): 0% = bienestar máximo (no rojo), 100% = malestar máximo (rojo)
-      // Para dominios positivos (bienestar físico): 0% = malestar máximo (rojo), 100% = bienestar máximo (no rojo)
-      
-      if (isAnimo) {
-        // Ánimo: lógica específica - 0-20% = rojo (vulnerable), 21%+ = no rojo
-        return p <= 20
-      } else if (isPositive) {
-        // Solo bienestar físico: umbral estándar
-        return p < 34
-      } else {
-        // Ansiedad e impacto: umbral invertido
-        // 0-20% = verde (no rojo), 21-40% = morado (no rojo), 41%+ = rojo
-        return p > 40
-      }
+      // TODOS los dominios son positivos: 0% = malestar máximo (rojo), 100% = bienestar máximo (verde)
+      // Rojo si el bienestar es bajo (< 34%)
+      return p < 34
     },
     hasDeepResultFor(key) {
       return Boolean(this.deepByDomain[key])
